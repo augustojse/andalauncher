@@ -17,10 +17,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -68,6 +71,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.anda.launcher.core.model.LauncherSettings
@@ -407,13 +411,18 @@ internal fun <T> SegmentedRow(title: String, setting: Setting<T>, options: List<
     SettingFrame(title, setting.modified, setting::reset, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)) {
         SettingTitle(title, setting.modified)
         Spacer(Modifier.size(8.dp))
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        // Intrinsic height + fillMaxHeight: a label that wraps to two lines grows every segment alike.
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             options.forEachIndexed { i, option ->
                 SegmentedButton(
                     selected = option == setting.value,
                     onClick = { setting.set(option) },
                     shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                    label = { Text(label(option), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    modifier = Modifier.fillMaxHeight(),
+                    // From four options a segment is ~80 dp: the checkmark pushed labels like
+                    // "Above dock" into an ellipsis. The filled segment already marks the choice.
+                    icon = { if (options.size <= 3) SegmentedButtonDefaults.Icon(option == setting.value) },
+                    label = { Text(label(option), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center) },
                 )
             }
         }
