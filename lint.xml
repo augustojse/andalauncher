@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Shared lint policy: warnings are errors (see docs/RND.md), minus checks that only
+     report "a newer version exists"; dependency bumps are a deliberate, separate task. -->
+<lint>
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <issue id="OldTargetApi" severity="ignore" />
+    <!-- A launcher must enumerate every launchable activity; QUERY_ALL_PACKAGES is declared on purpose. -->
+    <issue id="QueryAllPackagesPermission" severity="ignore" />
+</lint>

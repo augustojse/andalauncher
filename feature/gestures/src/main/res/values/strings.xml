@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gestures_accessibility_label">Anda Launcher gestures</string>
+    <string name="gestures_accessibility_description">Lets Anda Launcher gestures lock the screen, open recent apps, the notification shade, quick settings, take screenshots and show the power menu. It does not read screen content or observe what you type.</string>
+</resources>
