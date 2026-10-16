@@ -49,7 +49,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -167,11 +166,12 @@ fun SettingsRoot(onExit: () -> Unit, initialScreen: String?) {
                 navigationIcon = {
                     IconButton(onClick = back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 },
+                actions = { if (previewModeFor(screen) == PreviewMode.Home) TryOnHomeButton(onExit) },
             )
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            previewModeFor(screen)?.let { mode -> StickyPreview(draft ?: stored, mode, scroll, onExit) }
+            previewModeFor(screen)?.let { mode -> StickyPreview(draft ?: stored, mode, scroll) }
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll)) {
                 CompositionLocalProvider(LocalSettingsHighlight provides highlight) {
                     when (screen) {
@@ -215,9 +215,8 @@ private val PreviewMin = 150.dp
  * layout phase, so scrolling never recomposes it) and follows sliders while they're dragged.
  */
 @Composable
-private fun StickyPreview(settings: LauncherSettings, mode: PreviewMode, scroll: ScrollState, onExit: () -> Unit) {
+private fun StickyPreview(settings: LauncherSettings, mode: PreviewMode, scroll: ScrollState) {
     val graph = LocalLauncherGraph.current
-    val context = LocalContext.current
     val homeLayout by graph.layoutRepository.layout.collectAsState(HomeLayout())
     val apps by graph.appsRepository.apps.collectAsState()
     val stats by graph.launchStatsRepository.stats.collectAsState(emptyMap())
@@ -248,23 +247,28 @@ private fun StickyPreview(settings: LauncherSettings, mode: PreviewMode, scroll:
                 suggestions = suggestions,
                 modifier = Modifier.fillMaxSize().padding(vertical = 12.dp),
             )
-            if (mode == PreviewMode.Home) {
-                FilledTonalButton(
-                    onClick = {
-                        // The exact preview: the real home with the Customize panel open.
-                        val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-                            .setPackage(context.packageName).putExtra(EXTRA_CUSTOMIZE, true)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        runCatching { context.startActivity(home) }.onSuccess { onExit() }
-                    },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
-                ) {
-                    Icon(Icons.Filled.TouchApp, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(6.dp))
-                    Text("Try on home")
-                }
-            }
         }
+    }
+}
+
+/**
+ * The exact preview: the real home with the Customize panel open. Lives in the top bar, because
+ * pinned over the preview it covered the miniature's dock.
+ */
+@Composable
+private fun TryOnHomeButton(onExit: () -> Unit) {
+    val context = LocalContext.current
+    TextButton(
+        onClick = {
+            val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                .setPackage(context.packageName).putExtra(EXTRA_CUSTOMIZE, true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { context.startActivity(home) }.onSuccess { onExit() }
+        },
+    ) {
+        Icon(Icons.Filled.TouchApp, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.size(6.dp))
+        Text("Try on home")
     }
 }
 
