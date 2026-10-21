@@ -48,6 +48,25 @@ Install on a connected Pixel or emulator, then pick **Anda Launcher** as the hom
 Release builds are R8-minified and, for sideloading, signed with the debug key until a real
 keystore is configured in `app/build.gradle.kts`.
 
+## Versions
+
+Every update gets a new version in [CHANGELOG.md](CHANGELOG.md): add a `## X.Y.Z — YYYY-MM-DD`
+entry at the top with one bullet per user-visible change. Bump Z for fixes only, and Y for new
+features (resetting Z). The build reads `versionName` and `versionCode` (`X*10000 + Y*100 + Z`)
+from that entry. Settings → About shows the whole list. `ChangelogTest` fails if the file is
+malformed or out of order. The nightly push refuses a changed APK that still has the last
+pushed version.
+
+## Dev notes
+
+Settings → Dev keeps notes and screenshots about anything misbehaving. They are stored on the
+phone, included in backups, and copied to `Downloads/Anda Launcher/dev`. Pull them to
+`dev-notes/` (git-ignored):
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools/dev/pull-dev-notes.ps1
+```
+
 ## Instrumented tests
 
 Drawer → home drag, folder creation and rename, widget add (through the system bind dialog),

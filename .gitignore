@@ -14,3 +14,4 @@ build/
 /prototype-baseline.zip
 /qa-reports/
 .claude/settings.local.json
+/dev-notes/

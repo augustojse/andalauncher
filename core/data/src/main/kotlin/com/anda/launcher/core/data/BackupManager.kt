@@ -37,13 +37,14 @@ data class BackupBundle(
 }
 
 /**
- * Versioned backup: a zip with `backup.json` plus the custom icon files. Also keeps rolling
+ * Versioned backup: a zip with `backup.json`, the custom icon files and the Dev notes. Also keeps rolling
  * automatic backups so a broken layout can always be recovered (docs/RND.md, "never crash-loop").
  */
 class BackupManager(
     private val context: Context,
     private val db: LauncherDatabase,
     private val settings: SettingsRepository,
+    private val devNotes: DevNotes,
 ) {
     val customIconDir: File get() = File(context.filesDir, "custom_icons").apply { mkdirs() }
     private val autoDir: File get() = File(context.filesDir, "backups").apply { mkdirs() }
@@ -66,6 +67,11 @@ class BackupManager(
             zip.closeEntry()
             customIconDir.listFiles()?.forEach { file ->
                 zip.putNextEntry(ZipEntry("${BackupReader.ICON_PREFIX}${file.name}"))
+                file.inputStream().use { it.copyTo(zip) }
+                zip.closeEntry()
+            }
+            devNotes.backupFiles().forEach { (path, file) ->
+                zip.putNextEntry(ZipEntry("${BackupReader.DEV_PREFIX}$path"))
                 file.inputStream().use { it.copyTo(zip) }
                 zip.closeEntry()
             }
@@ -96,6 +102,10 @@ class BackupManager(
             db.drawerGroupDao().insertMembers(restored.members)
         }
         settings.replace(restored.settings)
+        // Dev notes merge instead of replace: restoring an old layout must not lose newer notes.
+        runCatching {
+            if (devNotes.restore(parsed.devFiles) > 0) devNotes.mirrorMissing()
+        }.onFailure { Log.w(TAG, "Dev notes not restored", it) }
         true
     }
 

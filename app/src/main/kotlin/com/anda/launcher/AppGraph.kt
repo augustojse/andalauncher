@@ -16,6 +16,7 @@ import com.anda.launcher.core.apps.UserResolver
 import com.anda.launcher.core.data.AppOverridesRepository
 import com.anda.launcher.core.data.BackupManager
 import com.anda.launcher.core.data.CrashReports
+import com.anda.launcher.core.data.DevNotes
 import com.anda.launcher.core.data.DrawerGroupsRepository
 import com.anda.launcher.core.data.LaunchStatsRepository
 import com.anda.launcher.core.data.LayoutRepository
@@ -64,7 +65,8 @@ class AppGraph(private val app: Application) : LauncherGraph {
     override val iconRepository by lazy { IconRepository(app, appsRepository, shortcutRepository) }
     override val launchStatsRepository by lazy { LaunchStatsRepository(database) }
     override val drawerGroupsRepository by lazy { DrawerGroupsRepository(database) }
-    override val backupManager by lazy { BackupManager(app, database, settingsRepository) }
+    override val devNotes by lazy { DevNotes(app) }
+    override val backupManager by lazy { BackupManager(app, database, settingsRepository, devNotes) }
     override val defaultLayoutProvider by lazy { DefaultLayoutProvider(app, users) }
     override val appLauncher by lazy {
         AppLauncher(app, users) { key -> appScope.launch { launchStatsRepository.recordLaunch(key) } }

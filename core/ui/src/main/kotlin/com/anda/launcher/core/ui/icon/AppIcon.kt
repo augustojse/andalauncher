@@ -17,10 +17,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,27 +56,40 @@ fun IconStyle.iconSize(): Dp = BaseIconSize * (sizePercent / 100f)
 /**
  * Loads an app icon. A memory-cache hit is returned synchronously so warm frames never show a
  * placeholder; misses load on the icon dispatcher.
+ *
+ * The state is keyed on the app itself, not just remembered: list slots are reused for other apps
+ * (search results, rows, folders), and an unkeyed state would keep showing the previous app's icon.
+ * A restyle of the same app (new [cacheKey]) keeps the old bitmap until the new one is ready.
  */
 @Composable
 fun rememberAppIcon(key: ComponentKey, lastUpdate: Long, customIconPath: String? = null): ImageBitmap? {
     val icons = LocalLauncherGraph.current.iconRepository
     val version by icons.version.collectAsState()
     val cacheKey = remember(key, lastUpdate, version) { icons.appKey(key, lastUpdate) }
-    val initial = remember(cacheKey, customIconPath) {
-        if (customIconPath == null) icons.peek(cacheKey)?.asImageBitmap() else null
+    val state = remember(key, customIconPath) {
+        val hit = if (customIconPath == null) icons.peek(cacheKey)?.asImageBitmap() else null
+        mutableStateOf(LoadedIcon(if (hit != null) cacheKey else null, hit))
     }
-    return produceState(initial, cacheKey, customIconPath) {
-        if (value == null) value = icons.appIcon(key, lastUpdate, customIconPath)?.asImageBitmap()
-    }.value
+    LaunchedEffect(state, cacheKey) {
+        if (state.value.cacheKey == cacheKey) return@LaunchedEffect
+        state.value = LoadedIcon(cacheKey, icons.appIcon(key, lastUpdate, customIconPath)?.asImageBitmap())
+    }
+    return state.value.bitmap
 }
+
+/** The bitmap on screen and the cache key it was loaded for. */
+private class LoadedIcon(val cacheKey: String?, val bitmap: ImageBitmap?)
 
 @Composable
 fun rememberShortcutIcon(packageName: String, shortcutId: String, user: Long): ImageBitmap? {
     val icons = LocalLauncherGraph.current.iconRepository
     val version by icons.version.collectAsState()
-    return produceState<ImageBitmap?>(null, packageName, shortcutId, user, version) {
-        value = icons.shortcutIcon(packageName, shortcutId, user)?.asImageBitmap()
-    }.value
+    // Keyed on the shortcut so a reused slot never shows the previous shortcut's icon while loading.
+    val state = remember(packageName, shortcutId, user) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(state, version) {
+        state.value = icons.shortcutIcon(packageName, shortcutId, user)?.asImageBitmap()
+    }
+    return state.value
 }
 
 /** Default label color on top of the wallpaper: white on dark wallpapers, near-black on light ones. */

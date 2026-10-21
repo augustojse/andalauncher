@@ -6,6 +6,7 @@
   "Stable" means all of these pass, in order; the first failure stops the run and nothing is installed:
     1. QA smoke tier on the emulator (tools/qa/run-qa.ps1 -Tier smoke: unit tests, SmokeTourTest, log scan)
     2. lint (warnings are errors) and assembleRelease
+    3. a changed APK has a new version (the top entry of CHANGELOG.md)
   Then installs app-release.apk on the physical phone with `adb install -r`, which upgrades in place
   and keeps the home layout and settings. It never uninstalls and never touches emulators.
   If the APK is byte-identical to the last one pushed, the install is skipped.
@@ -34,6 +35,7 @@ $stamp = Get-Date -Format "yyyy-MM-dd_HHmm"
 $out = Join-Path $root "qa-reports\nightly"
 New-Item -ItemType Directory -Force $out | Out-Null
 $lastSha = Join-Path $out "last-pushed.sha256"
+$lastVersion = Join-Path $out "last-pushed.version"
 $lines = New-Object System.Collections.ArrayList
 
 function Note([string] $status, [string] $step, [string] $detail) {
@@ -69,6 +71,16 @@ if (-not (Test-Path $apk)) { Note "FAIL" "lint + assembleRelease" "build passed 
 $sha = (Get-FileHash $apk -Algorithm SHA256).Hash
 Note "PASS" "lint + assembleRelease" ("{0:N1} MB, sha256 {1}" -f ((Get-Item $apk).Length / 1MB), $sha.Substring(0, 12))
 
+# ---- 2b. Every update needs a new version (CHANGELOG.md) ------------------------------------------
+$meta = Get-Content "app\build\outputs\apk\release\output-metadata.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
+$apkVersion = if ($meta) { "$($meta.elements[0].versionName) ($($meta.elements[0].versionCode))" } else { "unknown" }
+$changedApk = -not ((Test-Path $lastSha) -and ((Get-Content $lastSha -Raw).Trim() -eq $sha))
+if ($changedApk -and (Test-Path $lastVersion) -and ((Get-Content $lastVersion -Raw).Trim() -eq $apkVersion)) {
+    Note "FAIL" "version" "The APK changed but is still $apkVersion, the last pushed version: bump the version in CHANGELOG.md"
+    Finish 1 "NOT STABLE"
+}
+Note "PASS" "version" $apkVersion
+
 # ---- 3. Find the phone (never an emulator) --------------------------------------------------------
 $phones = @(& $adb devices | Select-String '^(\S+)\s+device$' | ForEach-Object { $_.Matches[0].Groups[1].Value } | Where-Object { $_ -notlike "emulator-*" })
 if ($Serial) { $phones = @($phones | Where-Object { $_ -eq $Serial }) }
@@ -91,6 +103,7 @@ if ($result -notmatch 'Success') {
     Finish 2 "NOT PUSHED"
 }
 $sha | Set-Content $lastSha -Encoding ascii
+$apkVersion | Set-Content $lastVersion -Encoding ascii
 $version = (& $adb -s $phone shell dumpsys package $package 2>$null | Select-String 'versionName=(\S+)' | Select-Object -First 1).Matches.Groups[1].Value
 Note "PASS" "install" "Installed $package $version on $model"
 Finish 0 "PUSHED"

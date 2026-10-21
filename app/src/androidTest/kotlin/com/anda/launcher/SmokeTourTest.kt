@@ -207,7 +207,7 @@ class SmokeTourTest {
             "Home" to "Home screen", "Dock" to "Dock", "Drawer" to "App drawer", "Icons" to "Icons",
             "Folders" to "Folders", "Gestures" to "Gestures", "Search" to "Search", "Badges" to "Notification dots",
             "Theme" to "Look & feel", "Glance" to "At a glance", "Hidden" to "Hidden apps",
-            "Permissions" to "Permissions", "Backup" to "Backup & restore", "About" to "About",
+            "Permissions" to "Permissions", "Backup" to "Backup & restore", "Dev" to "Dev", "About" to "About",
         )
     }
 }

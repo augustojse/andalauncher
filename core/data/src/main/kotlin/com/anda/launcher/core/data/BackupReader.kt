@@ -7,8 +7,11 @@ import java.io.InputStream
 import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
 
-/** A backup file that was fully read and checked, before anything on the device is touched. */
-internal class ParsedBackup(val bundle: BackupBundle, val icons: Map<String, ByteArray>)
+/**
+ * A backup file that was fully read and checked, before anything on the device is touched.
+ * [devFiles] are the Dev notes' files, keyed `<note id>/<file name>`.
+ */
+internal class ParsedBackup(val bundle: BackupBundle, val icons: Map<String, ByteArray>, val devFiles: Map<String, ByteArray> = emptyMap())
 
 /** Why a backup was refused. */
 internal class InvalidBackupException(message: String) : IOException(message)
@@ -22,11 +25,14 @@ internal object BackupReader {
     const val MAX_JSON_BYTES = 8 * 1024 * 1024
     const val MAX_ICON_BYTES = 2 * 1024 * 1024
     const val MAX_ICONS = 1_000
+    const val MAX_DEV_FILE_BYTES = 8 * 1024 * 1024
+    const val MAX_DEV_FILES = 300
     const val MAX_TOTAL_BYTES = 64 * 1024 * 1024
 
     fun read(input: InputStream): ParsedBackup {
         var bundle: BackupBundle? = null
         val icons = LinkedHashMap<String, ByteArray>()
+        val devFiles = LinkedHashMap<String, ByteArray>()
         var total = 0L
         try {
             ZipInputStream(input.buffered()).use { zip ->
@@ -46,6 +52,13 @@ internal object BackupReader {
                             total += bytes.size
                             icons[name] = bytes
                         }
+                        entry.name.startsWith(DEV_PREFIX) -> {
+                            val path = safeDevPath(entry.name.removePrefix(DEV_PREFIX)) ?: continue
+                            if (devFiles.size >= MAX_DEV_FILES) throw InvalidBackupException("Too many dev note files")
+                            val bytes = zip.readAtMost(MAX_DEV_FILE_BYTES, path)
+                            total += bytes.size
+                            devFiles[path] = bytes
+                        }
                     }
                     if (total > MAX_TOTAL_BYTES) throw InvalidBackupException("Backup is too large")
                 }
@@ -63,7 +76,7 @@ internal object BackupReader {
         if (parsed.formatVersion > BackupBundle.FORMAT_VERSION) {
             throw InvalidBackupException("Made by a newer version of Anda Launcher")
         }
-        return ParsedBackup(parsed, icons)
+        return ParsedBackup(parsed, icons, devFiles)
     }
 
     /** A plain file name, or null: no paths, no `..`, no hidden or empty names. */
@@ -72,6 +85,15 @@ internal object BackupReader {
         if ('/' in raw || '\\' in raw || '\u0000' in raw) return null
         if (raw == "." || raw == ".." || raw.startsWith(".")) return null
         return raw
+    }
+
+    /** `<note id>/<file name>`, both plain names, or null. */
+    fun safeDevPath(raw: String): String? {
+        val parts = raw.split('/')
+        if (parts.size != 2) return null
+        val id = safeIconName(parts[0]) ?: return null
+        val name = safeIconName(parts[1]) ?: return null
+        return "$id/$name"
     }
 
     /** Reads the current entry, failing once it exceeds [limit] (zip bombs lie about sizes). */
@@ -89,4 +111,5 @@ internal object BackupReader {
 
     const val JSON_ENTRY = "backup.json"
     const val ICON_PREFIX = "icons/"
+    const val DEV_PREFIX = "dev/"
 }

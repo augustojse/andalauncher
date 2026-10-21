@@ -97,6 +97,45 @@ class BackupReaderTest {
     }
 
     @Test
+    fun devNoteFilesAreRead() {
+        val parsed = read(
+            zip(
+                "backup.json" to bundleJson().encodeToByteArray(),
+                "dev/1760000000000/note.json" to "{}".encodeToByteArray(),
+                "dev/1760000000000/1-screen.jpg" to byteArrayOf(1, 2),
+            ),
+        )
+        assertEquals(listOf("1760000000000/note.json", "1760000000000/1-screen.jpg"), parsed.devFiles.keys.toList())
+    }
+
+    @Test
+    fun backupsWithoutDevNotesStillRead() {
+        assertTrue(read(zip("backup.json" to bundleJson().encodeToByteArray())).devFiles.isEmpty())
+    }
+
+    @Test
+    fun pathTraversalDevPathsAreSkipped() {
+        val parsed = read(
+            zip(
+                "backup.json" to bundleJson().encodeToByteArray(),
+                "dev/../x" to byteArrayOf(1),
+                "dev/a/../../b" to byteArrayOf(1),
+                "dev/a/b/c" to byteArrayOf(1),
+                "dev/loose" to byteArrayOf(1),
+                "dev/.a/b" to byteArrayOf(1),
+                "dev/a/ok.txt" to byteArrayOf(1),
+            ),
+        )
+        assertEquals(listOf("a/ok.txt"), parsed.devFiles.keys.toList())
+    }
+
+    @Test
+    fun oversizedDevFileIsRefused() {
+        val huge = ByteArray(BackupReader.MAX_DEV_FILE_BYTES + 1)
+        assertRefused(zip("backup.json" to bundleJson().encodeToByteArray(), "dev/1/big.jpg" to huge))
+    }
+
+    @Test
     fun safeIconNameRules() {
         assertEquals("icon.png", BackupReader.safeIconName("icon.png"))
         assertNull(BackupReader.safeIconName(""))

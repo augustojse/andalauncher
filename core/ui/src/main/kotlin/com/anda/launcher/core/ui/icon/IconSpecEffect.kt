@@ -5,7 +5,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
@@ -30,9 +29,12 @@ fun rememberShapePreview(key: ComponentKey?, shape: IconShapeKind, size: Dp = Ba
     val icons = LocalLauncherGraph.current.iconRepository
     val sizePx = with(LocalDensity.current) { size.roundToPx() }
     val version by icons.version.collectAsState()
-    return produceState<ImageBitmap?>(null, key, shape, sizePx, version) {
-        value = key?.let { icons.shapePreview(it, shape, sizePx)?.asImageBitmap() }
-    }.value
+    // Keyed on the app, so switching the sample app never shows the previous app's icon meanwhile.
+    val state = remember(key) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(state, shape, sizePx, version) {
+        state.value = key?.let { icons.shapePreview(it, shape, sizePx)?.asImageBitmap() }
+    }
+    return state.value
 }
 
 @Composable

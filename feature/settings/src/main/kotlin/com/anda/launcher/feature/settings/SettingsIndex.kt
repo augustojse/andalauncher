@@ -15,6 +15,7 @@ internal enum class Screen(val title: String) {
     Hidden("Hidden apps"),
     Permissions("Permissions"),
     Backup("Backup & restore"),
+    Dev("Dev"),
     About("About"),
 }
 
@@ -118,6 +119,8 @@ internal object SettingsIndex {
         IndexEntry("Back up now", Screen.Backup, "export save"),
         IndexEntry("Restore from file", Screen.Backup, "import"),
         IndexEntry("Reset all settings", Screen.Backup, "factory defaults"),
+        IndexEntry("Save note", Screen.Dev, "dev bug report screenshot problem debug notes misbehaving"),
+        IndexEntry("Version history", Screen.About, "changelog release notes what's new update version build"),
     )
 
     /** Title prefix > title word > keyword matches; every query word must hit. */

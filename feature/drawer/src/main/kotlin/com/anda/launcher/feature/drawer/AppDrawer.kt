@@ -54,6 +54,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -561,7 +562,8 @@ private fun DrawerFolderListRow(group: DrawerGroup, members: List<AppInfo>, onCl
 @Composable
 internal fun AppRow(row: List<AppInfo>, controller: DrawerController, style: IconStyle, badges: Map<PackageUserKey, Int>, columns: Int) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        row.forEach { app -> Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { DrawerAppTile(app, controller, style, badges) } }
+        // Keyed by app: tile state (bounds, press feedback, gesture callbacks) must follow the app when results change.
+        row.forEach { app -> key(app.key) { Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { DrawerAppTile(app, controller, style, badges) } } }
         repeat(columns - row.size) { Box(Modifier.weight(1f)) }
     }
 }

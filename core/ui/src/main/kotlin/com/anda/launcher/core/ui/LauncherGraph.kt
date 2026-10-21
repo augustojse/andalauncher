@@ -9,6 +9,7 @@ import com.anda.launcher.core.apps.UserResolver
 import com.anda.launcher.core.data.AppOverridesRepository
 import com.anda.launcher.core.data.BackupManager
 import com.anda.launcher.core.data.CrashReports
+import com.anda.launcher.core.data.DevNotes
 import com.anda.launcher.core.data.DrawerGroupsRepository
 import com.anda.launcher.core.data.LaunchStatsRepository
 import com.anda.launcher.core.data.LayoutRepository
@@ -33,6 +34,7 @@ interface LauncherGraph {
     val backupManager: BackupManager
     val defaultLayoutProvider: DefaultLayoutProvider
     val crashReports: CrashReports
+    val devNotes: DevNotes
 }
 
 /** Implemented by the Application so services and secondary activities can reach the graph. */

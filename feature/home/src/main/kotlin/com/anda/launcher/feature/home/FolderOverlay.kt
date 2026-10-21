@@ -161,21 +161,24 @@ fun FolderOverlay(controller: HomeController, badges: Map<PackageUserKey, Int>, 
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                         row.forEachIndexed { colIndex, child ->
                             val index = rowIndex * columns + colIndex
-                            Box(
-                                Modifier.weight(1f).onGloballyPositioned { coords ->
-                                    while (childBounds.size <= index) childBounds.add(Rect.Zero)
-                                    childBounds[index] = coords.boundsInRoot()
-                                },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                HomeItemView(
-                                    item = child,
-                                    controller = controller,
-                                    style = style,
-                                    badges = badges,
-                                    onEdit = host::editItem,
-                                    defaultLabelColor = MaterialTheme.colorScheme.onSurface,
-                                )
+                            // Keyed by item: reordering inside the folder must move each tile's state with it.
+                            androidx.compose.runtime.key(child.id) {
+                                Box(
+                                    Modifier.weight(1f).onGloballyPositioned { coords ->
+                                        while (childBounds.size <= index) childBounds.add(Rect.Zero)
+                                        childBounds[index] = coords.boundsInRoot()
+                                    },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    HomeItemView(
+                                        item = child,
+                                        controller = controller,
+                                        style = style,
+                                        badges = badges,
+                                        onEdit = host::editItem,
+                                        defaultLabelColor = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
                             }
                         }
                         repeat(columns - row.size) { Box(Modifier.weight(1f)) }
