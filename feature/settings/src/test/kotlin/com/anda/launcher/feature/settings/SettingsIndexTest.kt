@@ -7,15 +7,17 @@ import java.io.File
 
 class SettingsIndexTest {
 
-    /** Unit tests run with the module directory as the working directory. */
+    /** Unit tests run with the module directory as the working directory. Screens may live in any file. */
     private val screensSource: String =
-        File("src/main/kotlin/com/anda/launcher/feature/settings/SettingsScreens.kt").readText()
+        File("src/main/kotlin/com/anda/launcher/feature/settings").walk()
+            .filter { it.isFile && (it.name.endsWith("Screen.kt") || it.name.endsWith("Screens.kt")) }
+            .joinToString("\n") { it.readText() }
 
     @Test
     fun everyIndexedTitleIsARealRow() {
         // The title is the highlight key: a renamed row would make search land on nothing.
         val missing = SettingsIndex.entries.filter { "\"${it.title}\"" !in screensSource }
-        assertTrue("Index titles not found in SettingsScreens.kt: ${missing.map { it.title }}", missing.isEmpty())
+        assertTrue("Index titles not found in the settings screens: ${missing.map { it.title }}", missing.isEmpty())
     }
 
     @Test

@@ -34,4 +34,31 @@ class FuzzyMatcherTest {
         assertEquals(0, score("xyz", "Camera"))
         assertEquals(0, FuzzyMatcher.score("ca", FuzzyMatcher.normalize("Xylophone a c"), fuzzy = false))
     }
+
+    @Test
+    fun typosStillMatchButRankLast() {
+        val typo = score("spotfiy", "Spotify")
+        assertTrue(typo > 0)
+        assertTrue(typo < score("ggl", "Google"))
+        assertTrue(score("yuotube", "YouTube") > 0)
+        assertTrue(score("gmial", "Gmail") > 0)
+        assertTrue(score("mpas", "Google Maps") > 0)
+        assertTrue(score("spotfiy", "Spotify") > score("spotfiy", "Spot Finder"))
+    }
+
+    @Test
+    fun typoBandNeedsFuzzyAndThreeLetters() {
+        assertEquals(0, FuzzyMatcher.score("spotfiy", FuzzyMatcher.normalize("Spotify"), fuzzy = false))
+        assertEquals(0, score("sx", "Sz"))
+        assertEquals(0, score("cam", "Car"))
+        assertEquals(0, score("phone", "Clock"))
+    }
+
+    @Test
+    fun jaroWinklerKnownValues() {
+        assertEquals(1.0, FuzzyMatcher.jaroWinkler("abc", "abc"), 1e-9)
+        assertEquals(0.0, FuzzyMatcher.jaroWinkler("abc", "xyz"), 1e-9)
+        assertEquals(0.961, FuzzyMatcher.jaroWinkler("martha", "marhta"), 1e-3)
+        assertEquals(0.840, FuzzyMatcher.jaroWinkler("dwayne", "duane"), 1e-3)
+    }
 }

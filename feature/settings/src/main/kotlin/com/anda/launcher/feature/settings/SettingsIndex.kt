@@ -100,6 +100,8 @@ internal object SettingsIndex {
         IndexEntry("Fuzzy matching", Screen.Search, "typo"),
         IndexEntry("Enter launches top result", Screen.Search, "keyboard"),
         IndexEntry("Web search suggestion", Screen.Search, "google browser"),
+        IndexEntry("Quick actions", Screen.Search, "call text sms email url link alarm timer calendar event"),
+        IndexEntry("Add search engine", Screen.Search, "web engine kagi duckduckgo wikipedia custom url"),
         // Dots
         IndexEntry("Dot style", Screen.Badges, "badges notification count"),
         // Look & feel

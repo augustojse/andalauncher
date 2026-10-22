@@ -5,7 +5,7 @@ import java.text.Normalizer
 /**
  * Scores how well a query matches a label. Higher is better; 0 means no match.
  * Ranking, best first: exact > prefix > word-prefix > initials ("gm" → Google Maps) >
- * substring > fuzzy subsequence.
+ * substring > fuzzy subsequence > typo (Jaro-Winkler, "spotfiy" → Spotify).
  */
 object FuzzyMatcher {
     private val diacritics = "\\p{Mn}+".toRegex()
@@ -29,7 +29,46 @@ object FuzzyMatcher {
             val gaps = subsequenceGaps(q, t)
             if (gaps >= 0) return (300 - gaps * 10).coerceAtLeast(50)
         }
+        if (fuzzy && q.length >= 3) {
+            // Short queries need a closer match: "cam" is already 0.82 similar to "car".
+            val threshold = if (q.length >= 5) 0.8 else 0.85
+            val similarity = maxOf(jaroWinkler(q, t), words.maxOfOrNull { jaroWinkler(q, it) } ?: 0.0)
+            if (similarity >= threshold) return 10 + ((similarity - threshold) / (1 - threshold) * 35).toInt()
+        }
         return 0
+    }
+
+    /** Standard Jaro-Winkler similarity, 0 (nothing alike) to 1 (equal). */
+    internal fun jaroWinkler(a: String, b: String): Double {
+        if (a == b) return 1.0
+        if (a.isEmpty() || b.isEmpty()) return 0.0
+        val window = (maxOf(a.length, b.length) / 2 - 1).coerceAtLeast(0)
+        val aMatched = BooleanArray(a.length)
+        val bMatched = BooleanArray(b.length)
+        var matches = 0
+        for (i in a.indices) {
+            for (j in maxOf(0, i - window)..minOf(b.length - 1, i + window)) {
+                if (bMatched[j] || a[i] != b[j]) continue
+                aMatched[i] = true
+                bMatched[j] = true
+                matches++
+                break
+            }
+        }
+        if (matches == 0) return 0.0
+        var outOfOrder = 0
+        var j = 0
+        for (i in a.indices) {
+            if (!aMatched[i]) continue
+            while (!bMatched[j]) j++
+            if (a[i] != b[j]) outOfOrder++
+            j++
+        }
+        val m = matches.toDouble()
+        val jaro = (m / a.length + m / b.length + (m - outOfOrder / 2.0) / m) / 3
+        var prefix = 0
+        while (prefix < minOf(4, a.length, b.length) && a[prefix] == b[prefix]) prefix++
+        return jaro + prefix * 0.1 * (1 - jaro)
     }
 
     private fun matchesInitials(q: String, words: List<String>): Boolean {

@@ -379,8 +379,9 @@ private fun gestureSummary(s: LauncherSettings) =
 
 private fun searchSummary(s: LauncherSettings): String {
     val q = s.search
-    val on = listOf(q.apps, q.shortcuts, q.contacts, q.calculator, q.unitConverter, q.systemSettings, q.webSearch).count { it }
-    return "$on of 7 sources" + if (q.fuzzyMatching) " · fuzzy" else ""
+    val on = listOf(q.apps, q.shortcuts, q.contacts, q.calculator, q.unitConverter, q.systemSettings, q.webSearch, q.quickActions).count { it }
+    return "$on of 8 sources" + (if (q.fuzzyMatching) " · fuzzy" else "") +
+        if (q.webEngines.isNotEmpty()) " · ${q.webEngines.size} web engines" else ""
 }
 
 private fun glanceSummary(s: LauncherSettings): String {
@@ -672,35 +673,7 @@ private fun GestureSettingsScreen(b: SettingsBinder) {
     }
 }
 
-// ---- Search --------------------------------------------------------------------------------------
-
-@Composable
-private fun SearchSettingsScreen(b: SettingsBinder) {
-    val context = LocalContext.current
-    val contacts = b.bind({ it.search.contacts }) { copy(search = search.copy(contacts = it)) }
-    val contactsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) contacts.set(true)
-    }
-    SettingsGroup("Sources") {
-        SwitchRow("Apps", b.bind({ it.search.apps }) { copy(search = search.copy(apps = it)) })
-        SwitchRow("App shortcuts", b.bind({ it.search.shortcuts }) { copy(search = search.copy(shortcuts = it)) })
-        SwitchRow("Contacts", contacts.value, modified = contacts.modified, onReset = contacts::reset) { v ->
-            if (v && context.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
-                contactsPermission.launch(Manifest.permission.READ_CONTACTS)
-            } else {
-                contacts.set(v)
-            }
-        }
-        SwitchRow("Calculator", b.bind({ it.search.calculator }) { copy(search = search.copy(calculator = it)) }, "12*7, 15% of 80")
-        SwitchRow("Unit converter", b.bind({ it.search.unitConverter }) { copy(search = search.copy(unitConverter = it)) }, "5 km in miles")
-        SwitchRow("Android settings", b.bind({ it.search.systemSettings }) { copy(search = search.copy(systemSettings = it)) })
-        SwitchRow("Web search suggestion", b.bind({ it.search.webSearch }) { copy(search = search.copy(webSearch = it)) })
-    }
-    AdvancedSection("search", 2) {
-        SwitchRow("Fuzzy matching", b.bind({ it.search.fuzzyMatching }) { copy(search = search.copy(fuzzyMatching = it)) }, "\"ggl\" finds Google")
-        SwitchRow("Enter launches top result", b.bind({ it.search.launchTopOnEnter }) { copy(search = search.copy(launchTopOnEnter = it)) })
-    }
-}
+// ---- Search: SearchSettingsScreen.kt ---------------------------------------------------------------
 
 // ---- Dots ----------------------------------------------------------------------------------------
 

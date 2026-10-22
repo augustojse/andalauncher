@@ -70,6 +70,12 @@ fun LauncherSettings.sanitized(): LauncherSettings {
             columns = folders.columns.coerceIn(3, 6),
             backgroundOpacity = folders.backgroundOpacity.safe(d.folders.backgroundOpacity).coerceIn(0f, 1f),
         ),
+        search = search.copy(
+            webEngines = search.webEngines
+                .filter { it.isValid }
+                .map { it.copy(name = it.name.trim().take(40)) }
+                .take(WebEngine.MAX_ENGINES),
+        ),
         theme = theme.copy(cornerRadiusDp = theme.cornerRadiusDp.coerceIn(0, 40)),
     )
 }

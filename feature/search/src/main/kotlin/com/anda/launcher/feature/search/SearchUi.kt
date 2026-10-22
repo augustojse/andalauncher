@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Straighten
@@ -185,12 +186,30 @@ private fun LazyListScope.resultItems(others: List<SearchResult>, actions: Searc
                 subtitle = "Settings",
                 onClick = { actions.openIntent(Intent(result.action)) },
             )
-            is SearchResult.Web -> ResultRow(
-                icon = { Icon(Icons.Filled.Search, null) },
-                title = "Search the web for \"${result.query}\"",
-                subtitle = null,
-                onClick = { actions.openIntent(WebSearch.intent(result.query)) },
+            is SearchResult.Action -> ResultRow(
+                icon = { Icon(QueryActionIntents.icon(result.action), null) },
+                title = QueryActionIntents.title(result.action),
+                subtitle = QueryActionIntents.subtitle(result.action),
+                onClick = { actions.openIntent(QueryActionIntents.intent(result.action)) },
             )
+            is SearchResult.Web -> {
+                val engine = result.engine
+                if (engine == null) {
+                    ResultRow(
+                        icon = { Icon(Icons.Filled.Search, null) },
+                        title = "Search the web for \"${result.query}\"",
+                        subtitle = null,
+                        onClick = { actions.openIntent(WebSearch.intent(result.query)) },
+                    )
+                } else {
+                    ResultRow(
+                        icon = { Icon(Icons.Filled.Public, null) },
+                        title = "Search ${engine.name} for \"${result.query}\"",
+                        subtitle = null,
+                        onClick = { actions.openIntent(WebSearch.intent(result.query, engine)) },
+                    )
+                }
+            }
             is SearchResult.App -> Unit
         }
     }

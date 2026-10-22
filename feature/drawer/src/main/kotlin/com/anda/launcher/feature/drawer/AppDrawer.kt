@@ -157,8 +157,9 @@ fun AppDrawer(
         val suggestions = remember(apps, stats, drawer.columns) { suggestions(apps, stats, drawer.columns) }
         val hiddenCount = remember(apps) { apps.count { it.isHidden } }
 
-        val results by produceState(SearchResults(), controller.query, apps, stats, settings.search) {
-            value = engine.search(controller.query, settings.search, apps, stats, drawer.hiddenAppsInSearch || controller.hiddenUnlocked)
+        val includeHidden = drawer.hiddenAppsInSearch || controller.hiddenUnlocked
+        val results by produceState(SearchResults(), controller.query, apps, stats, settings.search, includeHidden) {
+            engine.results(controller.query, settings.search, apps, stats, includeHidden).collect { value = it }
         }
 
         Column(

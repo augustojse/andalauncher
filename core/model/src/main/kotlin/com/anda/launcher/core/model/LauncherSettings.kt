@@ -187,7 +187,29 @@ data class SearchSettings(
     val fuzzyMatching: Boolean = true,
     /** Launch the top result when pressing enter (Niagara/Kiss behaviour). */
     val launchTopOnEnter: Boolean = true,
+    /** Call, text, email, open, alarm, timer and calendar actions read from the query. */
+    val quickActions: Boolean = true,
+    /** Extra "Search <name>" rows, each opening a URL in the browser. */
+    val webEngines: List<WebEngine> = emptyList(),
 )
+
+/** A user-defined web search; `%s` in [urlTemplate] is replaced by the encoded query. */
+@Serializable
+data class WebEngine(val name: String, val urlTemplate: String) {
+    fun urlFor(query: String): String =
+        urlTemplate.replace(PLACEHOLDER, java.net.URLEncoder.encode(query, Charsets.UTF_8).replace("+", "%20"))
+
+    val isValid: Boolean get() = name.isNotBlank() && isValidTemplate(urlTemplate)
+
+    companion object {
+        const val PLACEHOLDER = "%s"
+        const val MAX_ENGINES = 10
+
+        fun isValidTemplate(template: String): Boolean =
+            (template.startsWith("https://") || template.startsWith("http://")) &&
+                PLACEHOLDER in template && template.none(Char::isWhitespace) && template.length <= 500
+    }
+}
 
 @Serializable
 data class BadgeSettings(

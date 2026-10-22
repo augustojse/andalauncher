@@ -11,6 +11,8 @@
     <!-- Optional, requested at runtime only when the user enables the feature. -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Install-time; lets search hand "7:30" or "5 min" to the clock app (AlarmClock intents). -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <!-- Deliberately NO android.permission.INTERNET (docs/RND.md). -->
 
     <application

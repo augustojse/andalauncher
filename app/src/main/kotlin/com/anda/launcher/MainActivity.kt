@@ -95,7 +95,7 @@ class MainActivity :
         home = HomeController(applicationContext, graph, graph.widgetHost, drag, overlay, controllerScope, dispatcher, this)
         home.safeMode = graph.crashGuard.safeMode
         drawer = DrawerController(graph, overlay, drag, controllerScope, this)
-        searchEngine = SearchEngine(applicationContext, graph)
+        searchEngine = SearchEngine.create(applicationContext, graph)
         setContent { LauncherRoot(this, graph) }
         if (intent?.getBooleanExtra(EXTRA_CUSTOMIZE, false) == true) home.openCustomize()
     }
