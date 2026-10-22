@@ -6,6 +6,7 @@ ideas from Niagara, Kvaesitso, Action Launcher and Lawnchair, built clean-room i
 
 > R&D rules, performance budgets and quality gates: [docs/RND.md](docs/RND.md).
 > Architecture decisions: [docs/adr](docs/adr). Platform research: [docs/research](docs/research).
+> Ideas from Lawnchair and Kvaesitso: [inspiration/improvements.md](inspiration/improvements.md).
 
 ## Features
 
