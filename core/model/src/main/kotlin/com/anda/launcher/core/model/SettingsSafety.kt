@@ -76,7 +76,12 @@ fun LauncherSettings.sanitized(): LauncherSettings {
                 .map { it.copy(name = it.name.trim().take(40)) }
                 .take(WebEngine.MAX_ENGINES),
         ),
-        theme = theme.copy(cornerRadiusDp = theme.cornerRadiusDp.coerceIn(0, 40)),
+        theme = theme.copy(
+            cornerRadiusDp = theme.cornerRadiusDp.coerceIn(0, 40),
+            backgroundBlur = theme.backgroundBlur.safe(d.theme.backgroundBlur).coerceIn(0f, 1f),
+            cardBlur = theme.cardBlur.safe(d.theme.cardBlur).coerceIn(0f, 1f),
+            surfaceTint = theme.surfaceTint.safe(d.theme.surfaceTint).coerceIn(0f, 1f),
+        ),
     )
 }
 

@@ -101,6 +101,8 @@ import com.anda.launcher.feature.search.SearchField
 import com.anda.launcher.feature.search.SearchResultActions
 import com.anda.launcher.feature.search.SearchResults
 import com.anda.launcher.feature.search.SearchResultsList
+import com.anda.launcher.feature.search.chipIntent
+import com.anda.launcher.feature.search.chips
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.geometry.Rect
@@ -179,7 +181,14 @@ fun AppDrawer(
                         onQueryChange = { controller.query = it },
                         onSubmit = {
                             val top = results.topApp
-                            if (settings.search.launchTopOnEnter && top != null) controller.launch(top, Rect.Zero)
+                            if (settings.search.launchTopOnEnter) {
+                                // No app: the highlighted first chip (call, alarm, web search…) runs instead.
+                                if (top != null) {
+                                    controller.launch(top, Rect.Zero)
+                                } else {
+                                    results.chips().firstOrNull()?.chipIntent()?.let(searchActions::openIntent)
+                                }
+                            }
                         },
                         focusRequester = focusRequester,
                         style = settings.home.searchBarStyle,
@@ -198,6 +207,7 @@ fun AppDrawer(
                         actions = searchActions,
                         appRow = { row -> AppRow(row, controller, settings.icons.drawer, badges, drawer.columns) },
                         reverseLayout = drawer.searchBarBottom,
+                        showFilters = settings.search.categoryFilters,
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {

@@ -189,8 +189,10 @@ data class SearchSettings(
     val launchTopOnEnter: Boolean = true,
     /** Call, text, email, open, alarm, timer and calendar actions read from the query. */
     val quickActions: Boolean = true,
-    /** Extra "Search <name>" rows, each opening a URL in the browser. */
+    /** Extra "Search <name>" chips, each opening a URL in the browser. */
     val webEngines: List<WebEngine> = emptyList(),
+    /** Apps / Shortcuts / Contacts / Settings chips above the keyboard while searching. */
+    val categoryFilters: Boolean = true,
 )
 
 /** A user-defined web search; `%s` in [urlTemplate] is replaced by the encoded query. */
@@ -224,17 +226,56 @@ enum class BadgeMode { Off, Dots, Counts }
 data class ThemeSettings(
     val colorSource: ColorSource = ColorSource.Dynamic,
     val customAccent: Long = 0xFF4285F4,
+    /** Before 0.4 the only theme choice; still read while [mode] was never set. */
     val darkMode: DarkMode = DarkMode.System,
+    val mode: ThemeMode? = null,
+    /** Used when [themeMode] is [ThemeMode.Custom]. */
+    val custom: CustomPalette = CustomPalette(),
     val blur: Boolean = true,
+    /** Wallpaper and home screen behind the drawer and open folders, 0..1. */
+    val backgroundBlur: Float = 0.5f,
+    /** Frosted glass inside folder cards, 0..1; independent of [backgroundBlur]. */
+    val cardBlur: Float = 0.5f,
     val cornerRadiusDp: Int = 28,
     val font: FontChoice = FontChoice.System,
-)
+    /** Secondary text and outlines as strong as primary text. */
+    val highContrast: Boolean = false,
+    /** How far surfaces lean toward the primary color, 0..1. */
+    val surfaceTint: Float = 0f,
+) {
+    val themeMode: ThemeMode
+        get() = mode ?: when (darkMode) {
+            DarkMode.System -> ThemeMode.System
+            DarkMode.Light -> ThemeMode.Light
+            DarkMode.Dark -> ThemeMode.Dark
+        }
+}
 
 @Serializable
 enum class ColorSource { Dynamic, Wallpaper, Custom }
 
 @Serializable
 enum class DarkMode { System, Light, Dark }
+
+/** Oled is Dark with true-black surfaces. */
+@Serializable
+enum class ThemeMode { System, Light, Dark, Oled, Custom }
+
+/**
+ * The custom theme: [base] brightness plus one color per tier. A null tier comes from the color
+ * source (Material You, wallpaper or the picked accent), so only the tiers you touch are fixed.
+ */
+@Serializable
+data class CustomPalette(
+    val base: PaletteBase = PaletteBase.Dark,
+    val primary: Long? = null,
+    val secondary: Long? = null,
+    val tertiary: Long? = null,
+    val surface: Long? = null,
+)
+
+@Serializable
+enum class PaletteBase { Light, Dark, Black }
 
 @Serializable
 enum class FontChoice { System, SansSerif, Serif, Monospace, Condensed }

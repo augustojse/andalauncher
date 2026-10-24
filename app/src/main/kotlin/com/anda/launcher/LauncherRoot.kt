@@ -45,8 +45,13 @@ import com.anda.launcher.core.ui.icon.rememberIconSpec
 import com.anda.launcher.core.ui.menu.ItemMenuOverlay
 import com.anda.launcher.core.ui.menu.LocalOverlayController
 import com.anda.launcher.core.ui.theme.LauncherTheme
+import com.anda.launcher.core.ui.theme.LocalBackdrop
 import com.anda.launcher.core.ui.theme.LocalWallpaperTone
+import com.anda.launcher.core.ui.theme.backdropSource
+import com.anda.launcher.core.ui.theme.homeBlurRadius
 import com.anda.launcher.core.ui.theme.isLauncherDark
+import com.anda.launcher.core.ui.theme.rememberBackdrop
+import com.anda.launcher.core.ui.theme.wallpaperBlurPx
 import com.anda.launcher.feature.badges.BadgeRepository
 import com.anda.launcher.feature.drawer.AppDrawer
 import com.anda.launcher.feature.gestures.VerticalDragHandler
@@ -84,6 +89,7 @@ fun LauncherRoot(activity: MainActivity, graph: AppGraph) {
     val stats by graph.launchStatsRepository.stats.collectAsState(emptyMap())
     val badges by BadgeRepository.counts.collectAsState()
     val drawer = activity.drawer
+    val backdrop = rememberBackdrop()
 
     SideEffect {
         home.settings = settings
@@ -96,6 +102,7 @@ fun LauncherRoot(activity: MainActivity, graph: AppGraph) {
         LocalDragController provides activity.drag,
         LocalOverlayController provides activity.overlay,
         LocalAppLookup provides lookup,
+        LocalBackdrop provides backdrop,
     ) {
         LauncherTheme(settings.theme) {
             WindowEffects(activity, settings, dark)
@@ -120,7 +127,8 @@ fun LauncherRoot(activity: MainActivity, graph: AppGraph) {
                         activity.dispatcher.dispatch(settings.gestures.actionFor(gesture))
                     }
                 }
-                val blurFolders = settings.theme.blur && settings.folders.blur && home.openFolderId != null
+                val homeBlur = settings.theme.homeBlurRadius()
+                val blurFolders = settings.folders.blur && home.openFolderId != null && homeBlur > 0.dp
                 HomeScreen(
                     controller = home,
                     badges = badges,
@@ -134,7 +142,9 @@ fun LauncherRoot(activity: MainActivity, graph: AppGraph) {
                             scaleX = scale
                             scaleY = scale
                         }
-                        .then(if (blurFolders) Modifier.blur(12.dp) else Modifier),
+                        .then(if (blurFolders) Modifier.blur(homeBlur) else Modifier)
+                        // Inside the blur: folder cards show the sharp home through their own card blur.
+                        .backdropSource(backdrop),
                 )
                 AppDrawer(
                     controller = drawer,
@@ -165,13 +175,13 @@ private fun WindowEffects(activity: MainActivity, settings: LauncherSettings, da
     val home = activity.home
     // Live: changing the wallpaper flips status-bar icons without a launcher restart.
     val wallpaperDark = LocalWallpaperTone.current.isDark
-    val blurEnabled = settings.theme.blur
-    LaunchedEffect(blurEnabled, settings.drawer.blur, settings.folders.blur) {
+    val maxBlurPx = settings.theme.wallpaperBlurPx()
+    LaunchedEffect(maxBlurPx, settings.drawer.blur, settings.folders.blur) {
         snapshotFlow {
             val drawerStep = if (settings.drawer.blur) (drawer.progress.value * 6).roundToInt() else 0
             val folderStep = if (settings.folders.blur && home.openFolderId != null) 6 else 0
-            if (blurEnabled) maxOf(drawerStep, folderStep) else 0
-        }.distinctUntilChanged().collect { step -> activity.setWallpaperBlur(step * 10) }
+            maxOf(drawerStep, folderStep)
+        }.distinctUntilChanged().collect { step -> activity.setWallpaperBlur(maxBlurPx * step / 6) }
     }
     LaunchedEffect(settings.home.showStatusBar, dark, wallpaperDark) {
         // Full-screen launcher surfaces (drawer, widget picker) follow the theme; home follows the wallpaper.

@@ -61,13 +61,22 @@ internal fun SearchSettingsScreen(b: SettingsBinder) {
         SwitchRow("Web search suggestion", b.bind({ it.search.webSearch }) { copy(search = search.copy(webSearch = it)) })
     }
     WebEnginesGroup(b)
-    AdvancedSection("search", 2) {
+    AdvancedSection("search", 3) {
         SwitchRow(
             "Fuzzy matching",
             b.bind({ it.search.fuzzyMatching }) { copy(search = search.copy(fuzzyMatching = it)) },
             "\"ggl\" finds Google, \"spotfiy\" finds Spotify",
         )
-        SwitchRow("Enter launches top result", b.bind({ it.search.launchTopOnEnter }) { copy(search = search.copy(launchTopOnEnter = it)) })
+        SwitchRow(
+            "Enter launches top result",
+            b.bind({ it.search.launchTopOnEnter }) { copy(search = search.copy(launchTopOnEnter = it)) },
+            "Or runs the first chip when no app matches",
+        )
+        SwitchRow(
+            "Category filters",
+            b.bind({ it.search.categoryFilters }) { copy(search = search.copy(categoryFilters = it)) },
+            "Apps, Shortcuts, Contacts and Settings chips above the keyboard",
+        )
     }
 }
 
@@ -101,7 +110,7 @@ private fun WebEnginesGroup(b: SettingsBinder) {
             }
         }
         if (engines.size < WebEngine.MAX_ENGINES) {
-            NavRow("Add search engine", "Appears under your results, e.g. \"Search Wikipedia for …\"", Icons.Filled.Add) { adding = true }
+            NavRow("Add search engine", "A chip above your results, e.g. \"Wikipedia\"", Icons.Filled.Add) { adding = true }
         }
     }
     Hint("Each engine opens your browser with the query. Anda itself has no internet access.")

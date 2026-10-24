@@ -102,14 +102,19 @@ internal object SettingsIndex {
         IndexEntry("Web search suggestion", Screen.Search, "google browser"),
         IndexEntry("Quick actions", Screen.Search, "call text sms email url link alarm timer calendar event"),
         IndexEntry("Add search engine", Screen.Search, "web engine kagi duckduckgo wikipedia custom url"),
+        IndexEntry("Category filters", Screen.Search, "chips apps contacts shortcuts only filter"),
         // Dots
         IndexEntry("Dot style", Screen.Badges, "badges notification count"),
         // Look & feel
+        IndexEntry("Theme", Screen.Theme, "dark mode night light oled amoled black custom palette"),
         IndexEntry("Colors", Screen.Theme, "material you wallpaper accent dynamic"),
-        IndexEntry("Dark mode", Screen.Theme, "night light theme"),
         IndexEntry("Corner radius", Screen.Theme, "rounded corners shape"),
-        IndexEntry("Font", Screen.Theme, "typeface condensed serif"),
         IndexEntry("Blur effects", Screen.Theme, "blur"),
+        IndexEntry("Background blur", Screen.Theme, "blur intensity strength wallpaper home behind drawer folder"),
+        IndexEntry("Card blur", Screen.Theme, "blur intensity strength frosted glass folder card"),
+        IndexEntry("Font", Screen.Theme, "typeface condensed serif"),
+        IndexEntry("High-contrast text", Screen.Theme, "legibility readability accessibility outline"),
+        IndexEntry("Accent tint on surfaces", Screen.Theme, "colorful tinted background"),
         // Glance
         IndexEntry("Show At a glance", Screen.Glance, "date smartspace header"),
         IndexEntry("Next calendar event", Screen.Glance, "calendar agenda"),

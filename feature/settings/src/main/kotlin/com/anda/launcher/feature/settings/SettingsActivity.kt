@@ -5,8 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.core.view.WindowInsetsControllerCompat
 import com.anda.launcher.core.model.LauncherSettings
 import com.anda.launcher.core.ui.LauncherGraphOwner
 import com.anda.launcher.core.ui.LocalLauncherGraph
@@ -26,9 +28,18 @@ class SettingsActivity : ComponentActivity() {
             val current = settings ?: LauncherSettings()
             CompositionLocalProvider(LocalLauncherGraph provides graph, LocalLauncherSettings provides current) {
                 LauncherTheme(current.theme) {
+                    val dark = isLauncherDark(current.theme)
+                    // Bar icons follow the launcher's theme, not the system's: a dark theme on a light
+                    // system otherwise gets dark status-bar icons on a dark background.
+                    SideEffect {
+                        WindowInsetsControllerCompat(window, window.decorView).apply {
+                            isAppearanceLightStatusBars = !dark
+                            isAppearanceLightNavigationBars = !dark
+                        }
+                    }
                     // Home sits in the background while settings are open; keep icons current here
                     // so the previews show a new shape or pack straight away.
-                    rememberIconSpec(graph.iconRepository, current, isLauncherDark(current.theme))
+                    rememberIconSpec(graph.iconRepository, current, dark)
                     SettingsRoot(onExit = ::finish, initialScreen = intent.getStringExtra(EXTRA_SCREEN))
                 }
             }

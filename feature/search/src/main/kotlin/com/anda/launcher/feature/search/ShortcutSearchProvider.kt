@@ -34,6 +34,6 @@ internal class ShortcutSearchProvider(private val graph: LauncherGraph) : Search
     }
 
     private companion object {
-        const val MAX_SHORTCUTS = 5
+        const val MAX_SHORTCUTS = 10
     }
 }

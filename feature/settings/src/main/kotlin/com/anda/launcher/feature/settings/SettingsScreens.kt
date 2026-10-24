@@ -99,7 +99,6 @@ import com.anda.launcher.core.icons.IconPackInfo
 import com.anda.launcher.core.model.AppInfo
 import com.anda.launcher.core.model.BadgeMode
 import com.anda.launcher.core.model.ColorSource
-import com.anda.launcher.core.model.DarkMode
 import com.anda.launcher.core.model.DockShape
 import com.anda.launcher.core.model.DrawerSort
 import com.anda.launcher.core.model.DrawerStyle
@@ -361,14 +360,10 @@ private fun iconSummary(s: LauncherSettings) = buildList {
     add("${s.icons.home.sizePercent}%")
 }.joinToString(" · ")
 
-private fun themeSummary(s: LauncherSettings) = when (s.theme.colorSource) {
+private fun themeSummary(s: LauncherSettings) = "${themeLabel(s.theme.themeMode)} theme · " + when (s.theme.colorSource) {
     ColorSource.Dynamic -> "Material You"
-    ColorSource.Wallpaper -> "Wallpaper colors"
-    ColorSource.Custom -> "Custom accent"
-} + " · " + when (s.theme.darkMode) {
-    DarkMode.System -> "follows system"
-    DarkMode.Light -> "light"
-    DarkMode.Dark -> "dark"
+    ColorSource.Wallpaper -> "wallpaper colors"
+    ColorSource.Custom -> "your color"
 }
 
 private fun drawerSummary(s: LauncherSettings) =
@@ -693,33 +688,7 @@ private fun BadgeSettingsScreen(b: SettingsBinder) {
     }
 }
 
-// ---- Look & feel ---------------------------------------------------------------------------------
-
-@Composable
-private fun ThemeSettingsScreen(b: SettingsBinder) {
-    val t = b.stored.theme
-    SettingsGroup {
-        SegmentedRow("Colors", b.bind({ it.theme.colorSource }) { copy(theme = theme.copy(colorSource = it)) }, ColorSource.entries) {
-            when (it) {
-                ColorSource.Dynamic -> "Material You"
-                ColorSource.Wallpaper -> "Wallpaper"
-                ColorSource.Custom -> "Custom"
-            }
-        }
-        if (t.colorSource == ColorSource.Custom) {
-            val accent = b.bind({ it.theme.customAccent }) { copy(theme = theme.copy(customAccent = it)) }
-            ColorRow("Accent", accent.value, accent.modified, accent::reset) { v -> v?.let(accent::set) }
-        }
-        SegmentedRow("Dark mode", b.bind({ it.theme.darkMode }) { copy(theme = theme.copy(darkMode = it)) }, DarkMode.entries) {
-            if (it == DarkMode.System) "Auto" else humanize(it.name)
-        }
-        SliderRow("Corner radius", b.bind({ it.theme.cornerRadiusDp }) { copy(theme = theme.copy(cornerRadiusDp = it)) }, 0..40, " dp")
-    }
-    AdvancedSection("theme", 2) {
-        ChoiceRow("Font", b.bind({ it.theme.font }) { copy(theme = theme.copy(font = it)) }, FontChoice.entries)
-        SwitchRow("Blur effects", b.bind({ it.theme.blur }) { copy(theme = theme.copy(blur = it)) }, "Blur the wallpaper behind the drawer and folders")
-    }
-}
+// ---- Look & feel: ThemeSettingsScreen.kt ---------------------------------------------------------
 
 // ---- At a glance ---------------------------------------------------------------------------------
 

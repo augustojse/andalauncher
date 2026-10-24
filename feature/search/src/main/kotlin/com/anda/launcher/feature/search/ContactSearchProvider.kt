@@ -47,7 +47,7 @@ internal class ContactSearchProvider(private val context: Context) : SearchProvi
     }
 
     companion object {
-        private const val MAX_CONTACTS = 5
+        private const val MAX_CONTACTS = 10
 
         fun hasPermission(context: Context): Boolean =
             context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED

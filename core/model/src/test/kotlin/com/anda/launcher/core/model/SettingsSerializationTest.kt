@@ -49,6 +49,23 @@ class SettingsSerializationTest {
     }
 
     @Test
+    fun darkModeFromBeforeThemesBecomesTheTheme() {
+        // 0.3 stored only "darkMode"; 0.4's Theme must show the same choice without a migration step.
+        val old = json.decodeFromString<LauncherSettings>("""{"theme":{"darkMode":"Dark"}}""")
+        assertEquals(ThemeMode.Dark, old.theme.themeMode)
+        assertEquals(ThemeMode.System, LauncherSettings().theme.themeMode)
+        assertEquals(ThemeMode.Oled, old.theme.copy(mode = ThemeMode.Oled).themeMode)
+    }
+
+    @Test
+    fun sanitizedClampsBlurAndTint() {
+        val theme = LauncherSettings(theme = ThemeSettings(backgroundBlur = 3f, cardBlur = Float.NaN, surfaceTint = -1f)).sanitized().theme
+        assertEquals(1f, theme.backgroundBlur)
+        assertEquals(ThemeSettings().cardBlur, theme.cardBlur)
+        assertEquals(0f, theme.surfaceTint)
+    }
+
+    @Test
     fun sanitizedClampsEveryRange() {
         val broken = LauncherSettings(
             home = HomeSettings(columns = 0, rows = 99, horizontalPaddingDp = -5, defaultPage = -1, wallpaperDim = Float.NaN),

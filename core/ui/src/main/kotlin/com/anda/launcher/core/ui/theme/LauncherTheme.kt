@@ -15,26 +15,34 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
 import com.anda.launcher.core.model.ColorSource
-import com.anda.launcher.core.model.DarkMode
+import com.anda.launcher.core.model.CustomPalette
 import com.anda.launcher.core.model.FontChoice
+import com.anda.launcher.core.model.PaletteBase
+import com.anda.launcher.core.model.ThemeMode
 import com.anda.launcher.core.model.ThemeSettings
+import kotlin.math.roundToInt
 
 @Composable
-fun isLauncherDark(settings: ThemeSettings): Boolean = when (settings.darkMode) {
-    DarkMode.System -> isSystemInDarkTheme()
-    DarkMode.Light -> false
-    DarkMode.Dark -> true
+fun isLauncherDark(settings: ThemeSettings): Boolean = when (settings.themeMode) {
+    ThemeMode.System -> isSystemInDarkTheme()
+    ThemeMode.Light -> false
+    ThemeMode.Dark, ThemeMode.Oled -> true
+    ThemeMode.Custom -> settings.custom.base != PaletteBase.Light
 }
 
 /**
  * Material You by default; "Wallpaper" seeds from the wallpaper's primary color (Smart Launcher's
- * ambient theme); "Custom" seeds from a user accent.
+ * ambient theme); "Custom" seeds from a user accent. OLED and the custom theme then reshape that
+ * scheme, and the Advanced options (tint, contrast) apply on top of every theme.
  */
 @Composable
 fun LauncherTheme(settings: ThemeSettings, content: @Composable () -> Unit) {
@@ -42,8 +50,8 @@ fun LauncherTheme(settings: ThemeSettings, content: @Composable () -> Unit) {
     val dark = isLauncherDark(settings)
     val wallpaper = rememberWallpaperTone()
     // Keyed on the wallpaper too: a new wallpaper re-seeds "From wallpaper" and refreshes Monet.
-    val scheme = remember(settings.colorSource, settings.customAccent, dark, wallpaper) {
-        when (settings.colorSource) {
+    val scheme = remember(settings, dark, wallpaper) {
+        var scheme = when (settings.colorSource) {
             ColorSource.Dynamic -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             ColorSource.Wallpaper -> {
                 val seed = wallpaper.primary?.toArgb()
@@ -57,6 +65,14 @@ fun LauncherTheme(settings: ThemeSettings, content: @Composable () -> Unit) {
             }
             ColorSource.Custom -> seededScheme(settings.customAccent.toInt(), dark)
         }
+        when (settings.themeMode) {
+            ThemeMode.Oled -> scheme = scheme.withSurface(Color.Black)
+            ThemeMode.Custom -> scheme = scheme.customized(settings.custom)
+            else -> Unit
+        }
+        if (settings.surfaceTint > 0f) scheme = scheme.tinted(settings.surfaceTint)
+        if (settings.highContrast) scheme = scheme.highContrast()
+        scheme
     }
     val family = settings.font.toFontFamily()
     val typography = remember(family) { Typography().withFamily(family) }
@@ -163,3 +179,119 @@ private fun seededScheme(seed: Int, dark: Boolean): ColorScheme {
 
 /** Converts a stored ARGB Long setting into a Compose color, or [fallback] when unset. */
 fun Long?.toColorOr(fallback: Color): Color = if (this == null) fallback else Color(this.toInt())
+
+// ---- Theme → Blur --------------------------------------------------------------------------------
+
+/** Window blur of the wallpaper behind the drawer and open folders, in px (the window API's unit). */
+fun ThemeSettings.wallpaperBlurPx(): Int = if (blur) (backgroundBlur * 120).roundToInt() else 0
+
+/** Blur of the home screen behind an open folder. */
+fun ThemeSettings.homeBlurRadius(): Dp = if (blur) (backgroundBlur * 24).dp else 0.dp
+
+/** Frosted glass inside folder cards; 0 means a plain translucent card. */
+fun ThemeSettings.cardBlurRadius(): Dp = if (blur) (cardBlur * 40).dp else 0.dp
+
+// ---- OLED and custom themes ----------------------------------------------------------------------
+
+private fun ColorScheme.customized(palette: CustomPalette): ColorScheme {
+    var scheme = if (palette.base == PaletteBase.Black) withSurface(Color.Black) else this
+    palette.surface?.let { scheme = scheme.withSurface(Color(it.toInt())) }
+    val dark = scheme.surface.luminance() < 0.4f
+    palette.primary?.let { c ->
+        val t = Color(c.toInt()).tiers(dark)
+        scheme = scheme.copy(
+            primary = t.color, onPrimary = t.on, primaryContainer = t.container, onPrimaryContainer = t.onContainer,
+            inversePrimary = t.inverse, surfaceTint = t.color,
+        )
+    }
+    palette.secondary?.let { c ->
+        val t = Color(c.toInt()).tiers(dark)
+        scheme = scheme.copy(secondary = t.color, onSecondary = t.on, secondaryContainer = t.container, onSecondaryContainer = t.onContainer)
+    }
+    palette.tertiary?.let { c ->
+        val t = Color(c.toInt()).tiers(dark)
+        scheme = scheme.copy(tertiary = t.color, onTertiary = t.on, tertiaryContainer = t.container, onTertiaryContainer = t.onContainer)
+    }
+    return scheme
+}
+
+private class Tiers(val color: Color, val on: Color, val container: Color, val onContainer: Color, val inverse: Color)
+
+/**
+ * A picked accent is used exactly as picked; its container and text colors are derived from it.
+ * Containers are toned down like Material's: a vivid orange at full saturation made a dark-brick card.
+ */
+private fun Color.tiers(dark: Boolean) = Tiers(
+    color = this,
+    on = if (luminance() > 0.4f) Color(0xFF1B1B1F) else Color.White,
+    container = withLightness(if (dark) 0.28f else 0.90f, maxSaturation = 0.45f),
+    onContainer = withLightness(if (dark) 0.90f else 0.12f),
+    inverse = withLightness(if (dark) 0.40f else 0.80f),
+)
+
+/**
+ * Every surface role from one background color. Containers step away from it (lighter on a dark
+ * background, darker on a light one), and text gets the contrasting neutral.
+ */
+private fun ColorScheme.withSurface(background: Color): ColorScheme {
+    val dark = background.luminance() < 0.4f
+    fun step(amount: Float) = background.shiftLightness(if (dark) amount else -amount)
+    val on = if (dark) Color(0xFFE6E1E5) else Color(0xFF1B1B1F)
+    return copy(
+        background = background,
+        onBackground = on,
+        surface = background,
+        onSurface = on,
+        surfaceDim = step(-0.03f),
+        surfaceBright = step(0.12f),
+        surfaceContainerLowest = step(-0.02f),
+        surfaceContainerLow = step(0.025f),
+        surfaceContainer = step(0.045f),
+        surfaceContainerHigh = step(0.07f),
+        surfaceContainerHighest = step(0.10f),
+        surfaceVariant = step(0.12f),
+        onSurfaceVariant = lerp(on, background, 0.28f),
+        outline = lerp(on, background, 0.5f),
+        outlineVariant = lerp(on, background, 0.8f),
+        inverseSurface = on,
+        inverseOnSurface = background,
+    )
+}
+
+/** Advanced → Accent tint: surfaces lean toward the primary color, at most a quarter of the way. */
+private fun ColorScheme.tinted(amount: Float): ColorScheme {
+    val f = amount.coerceIn(0f, 1f) * 0.25f
+    fun Color.tint() = lerp(this, primary, f)
+    return copy(
+        background = background.tint(),
+        surface = surface.tint(),
+        surfaceDim = surfaceDim.tint(),
+        surfaceBright = surfaceBright.tint(),
+        surfaceContainerLowest = surfaceContainerLowest.tint(),
+        surfaceContainerLow = surfaceContainerLow.tint(),
+        surfaceContainer = surfaceContainer.tint(),
+        surfaceContainerHigh = surfaceContainerHigh.tint(),
+        surfaceContainerHighest = surfaceContainerHighest.tint(),
+        surfaceVariant = surfaceVariant.tint(),
+    )
+}
+
+private fun ColorScheme.highContrast(): ColorScheme = copy(
+    onSurfaceVariant = onSurface,
+    outline = lerp(onSurface, surface, 0.25f),
+    outlineVariant = lerp(onSurface, surface, 0.6f),
+)
+
+private fun Color.withLightness(lightness: Float, maxSaturation: Float = 1f): Color {
+    val hsl = FloatArray(3)
+    ColorUtils.colorToHSL(toArgb(), hsl)
+    hsl[1] = hsl[1].coerceAtMost(maxSaturation)
+    hsl[2] = lightness.coerceIn(0f, 1f)
+    return Color(ColorUtils.HSLToColor(hsl))
+}
+
+private fun Color.shiftLightness(delta: Float): Color {
+    val hsl = FloatArray(3)
+    ColorUtils.colorToHSL(toArgb(), hsl)
+    return withLightness(hsl[2] + delta)
+}

@@ -1,0 +1,457 @@
+package com.anda.launcher.feature.search
+
+import android.content.Intent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Shortcut
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+
+import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.anda.launcher.core.model.AppInfo
+import com.anda.launcher.core.ui.TestTags
+import com.anda.launcher.core.ui.icon.rememberShortcutIcon
+
+/** What a filter chip narrows the results to (Kvaesitso's filter bar). */
+enum class SearchCategory(val label: String, val icon: ImageVector) {
+    Apps("Apps", Icons.Filled.Apps),
+    Shortcuts("Shortcuts", Icons.AutoMirrored.Filled.Shortcut),
+    Contacts("Contacts", Icons.Filled.Person),
+    Settings("Settings", Icons.Filled.Settings),
+}
+
+private fun SearchResult.category(): SearchCategory? = when (this) {
+    is SearchResult.App -> SearchCategory.Apps
+    is SearchResult.Shortcut -> SearchCategory.Shortcuts
+    is SearchResult.Contact -> SearchCategory.Contacts
+    is SearchResult.SystemSetting -> SearchCategory.Settings
+    else -> null
+}
+
+/** Things to do with the query itself (call it, set an alarm, search the web): chips next to the search bar. */
+fun SearchResults.chips(): List<SearchResult> = others.filter { it is SearchResult.Action || it is SearchResult.Web }
+
+fun SearchResult.chipIntent(): Intent? = when (this) {
+    is SearchResult.Action -> QueryActionIntents.intent(action)
+    is SearchResult.Web -> if (engine == null) WebSearch.intent(query) else WebSearch.intent(query, engine)
+    else -> null
+}
+
+/** List groups show this many rows until "Show more". */
+private const val COLLAPSED_ROWS = 3
+
+/**
+ * The search page, after Kvaesitso: action chips by the search bar, then a featured card for a
+ * calculation, then one card per kind of result (apps as a grid via [appRow], the rest as rows
+ * joined into a stack), and category filters at the far end, above the keyboard. With
+ * [reverseLayout] (search bar at the bottom) everything mirrors so the chips stay by the bar.
+ */
+@Composable
+fun SearchResultsList(
+    results: SearchResults,
+    columns: Int,
+    actions: SearchResultActions,
+    appRow: @Composable (List<AppInfo>) -> Unit,
+    modifier: Modifier = Modifier,
+    reverseLayout: Boolean = false,
+    showFilters: Boolean = true,
+) {
+    var filter by remember { mutableStateOf<SearchCategory?>(null) }
+    var expanded by remember(results.query) { mutableStateOf(emptySet<SearchCategory>()) }
+    val chips = remember(results) { results.chips() }
+    val featured = remember(results) { results.others.filter { it is SearchResult.Calculation || it is SearchResult.Conversion } }
+    val groups = remember(results) {
+        results.others.filter { it.category() != null }.groupBy { it.category()!! }.toSortedMap(compareBy { it.ordinal })
+    }
+    val available = buildList {
+        if (results.apps.isNotEmpty()) add(SearchCategory.Apps)
+        addAll(groups.keys)
+    }
+    // A filter whose category has no results for this query shows everything instead of nothing.
+    val active = filter?.takeIf { it in available }
+
+    val chipRow: @Composable () -> Unit = {
+        if (chips.isNotEmpty()) ActionChips(chips, highlightFirst = results.apps.isEmpty(), actions)
+    }
+    val filterRow: @Composable () -> Unit = {
+        if (showFilters && available.size > 1) FilterRow(available, active) { filter = if (filter == it) null else it }
+    }
+    Column(modifier) {
+        if (reverseLayout) filterRow() else chipRow()
+        LazyColumn(
+            modifier = Modifier.weight(1f).testTag(TestTags.SEARCH_RESULTS),
+            reverseLayout = reverseLayout,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            var sections = 0
+            fun gap(key: String) {
+                if (sections++ > 0) item(key = "gap-$key") { Spacer(Modifier.height(12.dp)) }
+            }
+            if (active == null) {
+                featured.forEachIndexed { i, result ->
+                    gap("featured$i")
+                    item(key = "featured$i") { FeaturedCard(result, actions) }
+                }
+            }
+            if (results.apps.isNotEmpty() && (active == null || active == SearchCategory.Apps)) {
+                gap("apps")
+                appGroup(results.apps.map { it.app }.chunked(columns), reverseLayout, appRow)
+            }
+            groups.forEach { (category, items) ->
+                if (active != null && active != category) return@forEach
+                gap(category.name)
+                val collapsed = active == null && category !in expanded && items.size > COLLAPSED_ROWS + 1
+                val shown = if (collapsed) items.take(COLLAPSED_ROWS) else items
+                // "Show more" is the stack's last segment, so the rows above it keep inner corners.
+                val segments = shown.size + if (collapsed) 1 else 0
+                listGroup(category, shown, segments, reverseLayout, actions)
+                if (collapsed) {
+                    item(key = "${category.name}-more") {
+                        ShowMoreRow(items.size - COLLAPSED_ROWS, segmentShape(shown.size, segments, reverseLayout)) {
+                            expanded = expanded + category
+                        }
+                    }
+                }
+            }
+            if (sections == 0) {
+                item(key = "empty") { EmptyState(results.query, hasChips = chips.isNotEmpty(), chipsBelow = reverseLayout) }
+            }
+        }
+        if (reverseLayout) chipRow() else filterRow()
+    }
+}
+
+// ---- Groups --------------------------------------------------------------------------------------
+
+private val OuterCorner = 24.dp
+private val InnerCorner = 6.dp
+
+/** One segment of a stacked card: big corners on the outside edges of the group, small inside. */
+private fun segmentShape(isTop: Boolean, isBottom: Boolean, inner: Dp = InnerCorner): Shape = RoundedCornerShape(
+    topStart = if (isTop) OuterCorner else inner,
+    topEnd = if (isTop) OuterCorner else inner,
+    bottomStart = if (isBottom) OuterCorner else inner,
+    bottomEnd = if (isBottom) OuterCorner else inner,
+)
+
+/** In a reversed list the first item sits at the bottom of its group. */
+private fun segmentShape(index: Int, count: Int, reverse: Boolean, inner: Dp = InnerCorner): Shape {
+    val first = index == 0
+    val last = index == count - 1
+    return segmentShape(isTop = if (reverse) last else first, isBottom = if (reverse) first else last, inner = inner)
+}
+
+/** Apps: one seamless card holding the icon grid. */
+private fun LazyListScope.appGroup(rows: List<List<AppInfo>>, reverse: Boolean, appRow: @Composable (List<AppInfo>) -> Unit) {
+    items(rows.size, key = { "apps$it" }) { index ->
+        val first = index == 0
+        val last = index == rows.lastIndex
+        val top = if (reverse) last else first
+        val bottom = if (reverse) first else last
+        Surface(
+            shape = segmentShape(index, rows.size, reverse, inner = 0.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box(Modifier.padding(top = if (top) 8.dp else 0.dp, bottom = if (bottom) 8.dp else 0.dp)) { appRow(rows[index]) }
+        }
+    }
+}
+
+/** Shortcuts, contacts, settings: rows joined into one stack with hairline gaps. */
+private fun LazyListScope.listGroup(
+    category: SearchCategory,
+    items: List<SearchResult>,
+    segments: Int,
+    reverse: Boolean,
+    actions: SearchResultActions,
+) {
+    items(items.size, key = { "${category.name}$it-${items[it].hashCode()}" }) { index ->
+        ResultRow(items[index], segmentShape(index, segments, reverse), actions)
+    }
+}
+
+@Composable
+private fun ResultRow(result: SearchResult, shape: Shape, actions: SearchResultActions) {
+    when (result) {
+        is SearchResult.Shortcut -> SegmentRow(
+            shape = shape,
+            leading = {
+                val icon = rememberShortcutIcon(result.packageName, result.shortcutId, result.user)
+                if (icon != null) Image(icon, null, Modifier.size(36.dp)) else Avatar(Icons.AutoMirrored.Filled.ArrowForward)
+            },
+            title = result.label,
+            subtitle = result.appLabel,
+            onClick = { actions.openShortcut(result) },
+        )
+        is SearchResult.Contact -> SegmentRow(
+            shape = shape,
+            leading = { InitialAvatar(result.name) },
+            title = result.name,
+            subtitle = "Contact",
+            onClick = { actions.openIntent(Intent(Intent.ACTION_VIEW, result.lookupUri)) },
+        )
+        is SearchResult.SystemSetting -> SegmentRow(
+            shape = shape,
+            leading = { Avatar(Icons.Filled.Settings) },
+            title = result.title,
+            subtitle = "Android settings",
+            onClick = { actions.openIntent(Intent(result.action)) },
+        )
+        else -> Unit
+    }
+}
+
+@Composable
+private fun SegmentRow(shape: Shape, leading: @Composable () -> Unit, title: String, subtitle: String?, onClick: () -> Unit) {
+    Surface(
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+    ) {
+        Row(
+            Modifier.clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { leading() }
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShowMoreRow(hidden: Int, shape: Shape, onClick: () -> Unit) {
+    Surface(
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+    ) {
+        Row(
+            Modifier.clickable(onClick = onClick).padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Show $hidden more", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+private fun Avatar(icon: ImageVector) {
+    Box(
+        Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
+    }
+}
+
+@Composable
+private fun InitialAvatar(name: String) {
+    Box(
+        Modifier.size(40.dp).background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        val initial = name.firstOrNull { it.isLetterOrDigit() }?.uppercaseChar()
+        if (initial != null) {
+            Text(initial.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
+        } else {
+            Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+        }
+    }
+}
+
+// ---- Featured: calculator and unit converter -----------------------------------------------------
+
+/** The answer itself, large; tap copies it. */
+@Composable
+private fun FeaturedCard(result: SearchResult, actions: SearchResultActions) {
+    val (icon, question, answer) = when (result) {
+        is SearchResult.Calculation -> Triple(Icons.Filled.Calculate, result.expression, result.result)
+        is SearchResult.Conversion -> Triple(Icons.Filled.Straighten, result.line.substringBefore(" = "), result.line.substringAfter(" = "))
+        else -> return
+    }
+    Surface(
+        shape = RoundedCornerShape(OuterCorner),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.clickable { actions.copyToClipboard(answer) }.padding(horizontal = 20.dp, vertical = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                Text(
+                    question,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                "= $answer",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.End,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            )
+            Text(
+                "Tap to copy",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                modifier = Modifier.align(Alignment.End),
+            )
+        }
+    }
+}
+
+// ---- Chips ---------------------------------------------------------------------------------------
+
+/**
+ * Actions read from the query and web searches. When no app matches, the first one is
+ * highlighted: Enter runs it.
+ */
+@Composable
+private fun ActionChips(chips: List<SearchResult>, highlightFirst: Boolean, actions: SearchResultActions) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        items(chips.size, key = { "chip$it-${chips[it].hashCode()}" }) { index ->
+            val chip = chips[index]
+            val (icon, label) = when (chip) {
+                is SearchResult.Action -> QueryActionIntents.icon(chip.action) to QueryActionIntents.title(chip.action)
+                is SearchResult.Web -> if (chip.engine == null) Icons.Filled.Search to "Search the web" else Icons.Filled.Public to chip.engine.name
+                else -> return@items
+            }
+            val highlighted = highlightFirst && index == 0
+            AssistChip(
+                onClick = { chip.chipIntent()?.let(actions::openIntent) },
+                label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) },
+                colors = if (highlighted) {
+                    AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                } else {
+                    AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                },
+                border = AssistChipDefaults.assistChipBorder(
+                    enabled = true,
+                    borderColor = if (highlighted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
+                ),
+            )
+        }
+    }
+}
+
+/** "All" plus one chip per category that has results; tapping the selected one again clears it. */
+@Composable
+private fun FilterRow(available: List<SearchCategory>, active: SearchCategory?, onToggle: (SearchCategory) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = active == null,
+            onClick = { active?.let(onToggle) },
+            label = { Text("All") },
+        )
+        available.forEach { category ->
+            FilterChip(
+                selected = active == category,
+                onClick = { onToggle(category) },
+                label = { Text(category.label) },
+                leadingIcon = { Icon(category.icon, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(query: String, hasChips: Boolean, chipsBelow: Boolean) {
+    Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            "Nothing found for “$query”",
+            style = MaterialTheme.typography.titleMedium,
+            // Not inside a Surface, so the default content color would be black.
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        if (hasChips) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (chipsBelow) "Try an action below" else "Try an action above",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}

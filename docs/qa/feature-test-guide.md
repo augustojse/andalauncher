@@ -321,16 +321,19 @@ Each case lists **Steps** (adb-drivable), the **Expect** list, and the **Look cl
   - every surface (home, dock, drawer, folders, search results) updates consistently;
   - labels don't collide at 120%.
 
-**ST-05 Look & feel: dark mode and colours**
+**ST-05 Look & feel: themes, colours and blur**
 - **Steps:**
-  1. Dark mode on.
+  1. Theme → Dark, then OLED.
   2. Visit home, drawer, a folder, the menu and settings.
-  3. Then switch Colors to Custom and pick an accent.
+  3. Switch Colors to Pick and pick an accent.
+  4. Theme → Custom, base Light; under Advanced set a Primary and a Surface color (one from the picker).
+  5. Blur: Background blur 100 % and Card blur 0 %, open a folder; then Background 0 % and Card 100 %.
 - **Expect:**
-  - every surface goes dark;
-  - no light surface is left over;
-  - the custom accent shows on the drawer, folder and menu.
-- **Look closely at:** baseline-purple leaks (known risk: release-plan 3.3).
+  - Dark: every surface goes dark, no light surface left over; OLED: drawer and settings backgrounds are true black;
+  - the picked accent shows on the drawer, folder and menu;
+  - Custom: the Palette row and every surface use the chosen colors, text stays readable;
+  - the two blur settings visibly differ: home behind the folder vs the frosted card itself.
+- **Look closely at:** baseline-purple leaks (known risk: release-plan 3.3); card blur misaligned with the icons behind it after the folder's open animation.
 
 **ST-06 Drawer style and sort**
 - **Steps:**

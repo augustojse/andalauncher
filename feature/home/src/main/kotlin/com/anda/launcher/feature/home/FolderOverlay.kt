@@ -55,11 +55,14 @@ import androidx.compose.ui.unit.sp
 import com.anda.launcher.core.model.FolderItem
 import com.anda.launcher.core.model.FolderOpenStyle
 import com.anda.launcher.core.model.PackageUserKey
+import com.anda.launcher.core.model.LauncherSettings
 import com.anda.launcher.core.ui.LocalLauncherSettings
 import com.anda.launcher.core.ui.TestTags
 import com.anda.launcher.core.ui.drag.DragPayload
 import com.anda.launcher.core.ui.drag.DropTarget
 import com.anda.launcher.core.ui.drag.LocalDragController
+import com.anda.launcher.core.ui.theme.BackdropBlur
+import com.anda.launcher.core.ui.theme.cardBlurRadius
 import com.anda.launcher.core.ui.theme.toColorOr
 
 /**
@@ -120,10 +123,14 @@ fun FolderOverlay(controller: HomeController, badges: Map<PackageUserKey, Int>, 
             .pointerInput(Unit) { detectTapGestures { controller.closeFolder() } },
         contentAlignment = Alignment.Center,
     ) {
+        val cardColor = settings.folders.backgroundColor.toColorOr(MaterialTheme.colorScheme.surfaceContainer)
+            .copy(alpha = settings.folders.backgroundOpacity)
+        val cardBlur = settings.theme.cardBlurRadius()
+        val cardShape = if (fullScreen) RoundedCornerShape(0.dp) else MaterialTheme.shapes.extraLarge
         Surface(
-            shape = if (fullScreen) RoundedCornerShape(0.dp) else MaterialTheme.shapes.extraLarge,
-            color = settings.folders.backgroundColor.toColorOr(MaterialTheme.colorScheme.surfaceContainer)
-                .copy(alpha = settings.folders.backgroundOpacity),
+            shape = cardShape,
+            // With card blur the tint is drawn over the frosted backdrop instead, inside the card.
+            color = if (cardBlur > 0.dp) Color.Transparent else cardColor,
             modifier = (if (fullScreen) Modifier.fillMaxSize() else Modifier.padding(24.dp).widthIn(max = 420.dp))
                 .testTag(TestTags.FOLDER_PANEL)
                 .onGloballyPositioned { panelBounds[0] = it.boundsInRoot() }
@@ -142,48 +149,69 @@ fun FolderOverlay(controller: HomeController, badges: Map<PackageUserKey, Int>, 
                 }
                 .pointerInput(Unit) { detectTapGestures { } },
         ) {
-            Column(
-                Modifier.then(if (fullScreen) Modifier.statusBarsPadding() else Modifier).padding(20.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Balances the gear so the title stays centered.
-                    Box(Modifier.size(40.dp))
-                    Box(Modifier.weight(1f)) { FolderTitle(folder, controller) }
-                    IconButton(onClick = { controller.closeFolder(); host.openSettings("Folders") }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Folder settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+            if (cardBlur > 0.dp) {
+                Box {
+                    BackdropBlur(cardBlur, Modifier.matchParentSize(), cardShape)
+                    Box(Modifier.matchParentSize().background(cardColor))
+                    FolderPanelContent(folder, controller, host, badges, settings, fullScreen, childBounds)
                 }
-                val columns = settings.folders.columns.coerceAtLeast(2)
-                val style = settings.icons.folder
-                folder.children.chunked(columns).forEachIndexed { rowIndex, row ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        row.forEachIndexed { colIndex, child ->
-                            val index = rowIndex * columns + colIndex
-                            // Keyed by item: reordering inside the folder must move each tile's state with it.
-                            androidx.compose.runtime.key(child.id) {
-                                Box(
-                                    Modifier.weight(1f).onGloballyPositioned { coords ->
-                                        while (childBounds.size <= index) childBounds.add(Rect.Zero)
-                                        childBounds[index] = coords.boundsInRoot()
-                                    },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    HomeItemView(
-                                        item = child,
-                                        controller = controller,
-                                        style = style,
-                                        badges = badges,
-                                        onEdit = host::editItem,
-                                        defaultLabelColor = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                            }
+            } else {
+                FolderPanelContent(folder, controller, host, badges, settings, fullScreen, childBounds)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderPanelContent(
+    folder: FolderItem,
+    controller: HomeController,
+    host: HomeHost,
+    badges: Map<PackageUserKey, Int>,
+    settings: LauncherSettings,
+    fullScreen: Boolean,
+    childBounds: ArrayList<Rect>,
+) {
+    Column(
+        Modifier.then(if (fullScreen) Modifier.statusBarsPadding() else Modifier).padding(20.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Balances the gear so the title stays centered.
+            Box(Modifier.size(40.dp))
+            Box(Modifier.weight(1f)) { FolderTitle(folder, controller) }
+            IconButton(onClick = { controller.closeFolder(); host.openSettings("Folders") }, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Filled.Settings, contentDescription = "Folder settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        val columns = settings.folders.columns.coerceAtLeast(2)
+        val style = settings.icons.folder
+        folder.children.chunked(columns).forEachIndexed { rowIndex, row ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                row.forEachIndexed { colIndex, child ->
+                    val index = rowIndex * columns + colIndex
+                    // Keyed by item: reordering inside the folder must move each tile's state with it.
+                    androidx.compose.runtime.key(child.id) {
+                        Box(
+                            Modifier.weight(1f).onGloballyPositioned { coords ->
+                                while (childBounds.size <= index) childBounds.add(Rect.Zero)
+                                childBounds[index] = coords.boundsInRoot()
+                            },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            HomeItemView(
+                                item = child,
+                                controller = controller,
+                                style = style,
+                                badges = badges,
+                                onEdit = host::editItem,
+                                defaultLabelColor = MaterialTheme.colorScheme.onSurface,
+                            )
                         }
-                        repeat(columns - row.size) { Box(Modifier.weight(1f)) }
                     }
                 }
+                repeat(columns - row.size) { Box(Modifier.weight(1f)) }
             }
         }
     }
