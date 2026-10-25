@@ -63,7 +63,7 @@ internal fun DrawerFolderDialog(
 
 /**
  * Per-app edit (Nova "Edit app" + Smart Launcher category override + lock):
- * label, category, swipe action, hidden, locked.
+ * label, category, swipe action, hidden, locked. [onEditIcon] opens the icon editor for this app.
  */
 @Composable
 fun EditAppDialog(
@@ -72,6 +72,7 @@ fun EditAppDialog(
     apps: List<AppInfo>,
     onSave: (AppOverride) -> Unit,
     onDismiss: () -> Unit,
+    onEditIcon: (() -> Unit)? = null,
 ) {
     var label by remember { mutableStateOf(current.label ?: app.originalLabel) }
     var category by remember { mutableStateOf(current.category ?: app.category) }
@@ -87,6 +88,12 @@ fun EditAppDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Label") }, singleLine = true)
+                if (onEditIcon != null) {
+                    Column(Modifier.fillMaxWidth().clickable(onClick = onEditIcon).padding(vertical = 8.dp)) {
+                        Text("Icon", style = MaterialTheme.typography.bodyLarge)
+                        Text("Pack, colors, shape…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
                 Column(Modifier.fillMaxWidth().clickable { categoryMenu = true }.padding(vertical = 8.dp)) {
                     Text("Category", style = MaterialTheme.typography.bodyLarge)
                     Text(category.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)

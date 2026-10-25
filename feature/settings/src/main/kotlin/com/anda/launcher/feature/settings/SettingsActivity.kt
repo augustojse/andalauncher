@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -38,9 +39,15 @@ class SettingsActivity : ComponentActivity() {
                         }
                     }
                     // Home sits in the background while settings are open; keep icons current here
-                    // so the previews show a new shape or pack straight away.
-                    rememberIconSpec(graph.iconRepository, current, dark)
-                    SettingsRoot(onExit = ::finish, initialScreen = intent.getStringExtra(EXTRA_SCREEN))
+                    // so the previews show a new shape or pack straight away. Like home, wait for the
+                    // stored style before the first frame: on a cold start every icon was otherwise
+                    // drawn in the default style first and swapped seconds later.
+                    val iconsReady = settings != null && rememberIconSpec(graph.iconRepository, current, dark, MaterialTheme.colorScheme)
+                    if (iconsReady) SettingsRoot(
+                        onExit = ::finish,
+                        initialScreen = intent.getStringExtra(EXTRA_SCREEN),
+                        initialIconTarget = intent.getStringExtra(EXTRA_ICON_APP),
+                    )
                 }
             }
         }
@@ -48,5 +55,9 @@ class SettingsActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_SCREEN = "screen"
+
+        /** With [EXTRA_SCREEN] = [SCREEN_ICON_EDITOR]: the app (flattened ComponentKey) to edit. */
+        const val EXTRA_ICON_APP = "icon_app"
+        const val SCREEN_ICON_EDITOR = "IconEditor"
     }
 }

@@ -60,6 +60,15 @@ fun LauncherSettings.sanitized(): LauncherSettings {
             dock = icons.dock.sanitized(),
             drawer = icons.drawer.sanitized(),
             folder = icons.folder.sanitized(),
+            customShape = icons.customShape.sanitized(),
+            style = icons.style.copy(shape = null, customShape = null).sanitized(),
+            // An exception that changes nothing, or for an unreadable app key, is dropped.
+            perApp = icons.perApp.asSequence()
+                .filter { (key, _) -> ComponentKey.parse(key) != null }
+                .map { (key, o) -> key to o.sanitized() }
+                .filterNot { (_, o) -> o.isEmpty }
+                .take(IconSettings.MAX_EXCEPTIONS)
+                .toMap(),
         ),
         drawer = drawer.copy(
             columns = drawer.columns.coerceIn(3, 8),
@@ -90,6 +99,3 @@ private fun IconStyle.sanitized(): IconStyle = copy(
     labelSizeSp = labelSizeSp.coerceIn(8, 18),
     labelLines = labelLines.coerceIn(1, 2),
 )
-
-/** NaN or infinity (never produced by the UI, but possible in a foreign file) → [fallback]. */
-private fun Float.safe(fallback: Float): Float = if (isFinite()) this else fallback

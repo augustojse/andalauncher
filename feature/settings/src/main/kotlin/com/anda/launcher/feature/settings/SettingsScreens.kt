@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Dock
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
@@ -94,8 +95,6 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.anda.launcher.core.data.BackupManager
 import com.anda.launcher.core.data.DevNote
-import com.anda.launcher.core.icons.IconPack
-import com.anda.launcher.core.icons.IconPackInfo
 import com.anda.launcher.core.model.AppInfo
 import com.anda.launcher.core.model.BadgeMode
 import com.anda.launcher.core.model.ColorSource
@@ -108,6 +107,7 @@ import com.anda.launcher.core.model.FontChoice
 import com.anda.launcher.core.model.Gesture
 import com.anda.launcher.core.model.GestureSettings
 import com.anda.launcher.core.model.HomeLayout
+import com.anda.launcher.core.model.ComponentKey
 import com.anda.launcher.core.model.IconShapeKind
 import com.anda.launcher.core.model.IconStyle
 import com.anda.launcher.core.model.LauncherSettings
@@ -121,7 +121,6 @@ import com.anda.launcher.core.ui.SystemSettingsIntent
 import com.anda.launcher.core.ui.TestTags
 import com.anda.launcher.core.ui.startActivitySafely
 import com.anda.launcher.core.ui.icon.rememberAppIcon
-import com.anda.launcher.core.ui.icon.rememberShapePreview
 import com.anda.launcher.feature.badges.BadgeRepository
 import com.anda.launcher.feature.gestures.ActionPickerDialog
 import com.anda.launcher.feature.gestures.SystemActions
@@ -142,14 +141,20 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsRoot(onExit: () -> Unit, initialScreen: String?) {
+fun SettingsRoot(onExit: () -> Unit, initialScreen: String?, initialIconTarget: String? = null) {
     var screen by rememberSaveable { mutableStateOf(Screen.entries.firstOrNull { it.name == initialScreen } ?: Screen.Main) }
     var highlight by rememberSaveable { mutableStateOf<String?>(null) }
+    // The app the icon editor works on (flattened key), or null for all apps.
+    var iconTarget by rememberSaveable { mutableStateOf(initialIconTarget) }
     val go: (Screen, String?) -> Unit = { to, row ->
         screen = to
         highlight = row
     }
-    val back = { if (screen == Screen.Main) onExit() else go(Screen.Main, null) }
+    val openIconEditor: (ComponentKey?) -> Unit = { key ->
+        iconTarget = key?.flatten()
+        go(Screen.IconEditor, null)
+    }
+    val back = { if (screen == Screen.Main) onExit() else go(screen.parent ?: Screen.Main, null) }
     BackHandler(onBack = back)
     // The flash and auto-expanded Advanced section only need to last until the row was seen.
     LaunchedEffect(highlight) {
@@ -167,7 +172,19 @@ fun SettingsRoot(onExit: () -> Unit, initialScreen: String?) {
     var draft by remember(stored, screen) { mutableStateOf<LauncherSettings?>(null) }
     val binder = remember(stored, screen) { SettingsBinder(stored, update) { draft = it } }
     // One scroll position per screen: sub-screens always open at the top.
-    val scroll = key(screen) { rememberScrollState() }
+    // The icon editor shares the Icons page's state, so Save or Back returns to the same spot.
+    val scroll = key(screen.parent ?: screen) { rememberScrollState() }
+
+    // The editor is a full-screen tool with its own bar (Save, Reset) and unsaved-changes check.
+    if (screen == Screen.IconEditor) {
+        IconEditorScreen(
+            target = iconTarget?.let(ComponentKey::parse),
+            onTargetChange = { iconTarget = it?.flatten() },
+            update = update,
+            onClose = { go(Screen.Icons, null) },
+        )
+        return
+    }
 
     Scaffold(
         topBar = {
@@ -175,6 +192,11 @@ fun SettingsRoot(onExit: () -> Unit, initialScreen: String?) {
                 title = { Text(screen.title) },
                 navigationIcon = {
                     IconButton(onClick = back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                },
+                actions = {
+                    if (screen == Screen.Icons) {
+                        IconButton(onClick = { openIconEditor(null) }) { Icon(Icons.Filled.FormatPaint, contentDescription = "Icon editor") }
+                    }
                 },
             )
         },
@@ -188,7 +210,7 @@ fun SettingsRoot(onExit: () -> Unit, initialScreen: String?) {
                         Screen.Home -> HomeSettingsScreen(binder)
                         Screen.Dock -> DockSettingsScreen(binder)
                         Screen.Drawer -> DrawerSettingsScreen(binder) { go(Screen.Hidden, null) }
-                        Screen.Icons -> IconSettingsScreen(binder)
+                        Screen.Icons -> IconSettingsScreen(binder, openIconEditor)
                         Screen.Folders -> FolderSettingsScreen(binder)
                         Screen.Gestures -> GestureSettingsScreen(binder)
                         Screen.Search -> SearchSettingsScreen(binder)
@@ -200,6 +222,7 @@ fun SettingsRoot(onExit: () -> Unit, initialScreen: String?) {
                         Screen.Backup -> BackupScreen(binder)
                         Screen.Dev -> DevScreen()
                         Screen.About -> AboutScreen()
+                        Screen.IconEditor -> Unit
                     }
                 }
                 Spacer(Modifier.height(32.dp))
@@ -474,7 +497,7 @@ private fun DockSettingsScreen(b: SettingsBinder) {
  * Size and labels up front; label typography folded into Advanced. Used by every icon area.
  */
 @Composable
-private fun IconStyleGroups(
+internal fun IconStyleGroups(
     title: String,
     key: String,
     b: SettingsBinder,
@@ -489,7 +512,7 @@ private fun IconStyleGroups(
         SwitchRow("Labels", part({ it.showLabels }) { copy(showLabels = it) })
     }
     if (style.showLabels) {
-        AdvancedSection("labels-$key", 5) {
+        AdvancedSection("labels-$key", 5, title = "Label options") {
             SliderRow("Label size", part({ it.labelSizeSp }) { copy(labelSizeSp = it) }, 8..18, " sp")
             SliderRow("Label lines", part({ it.labelLines }) { copy(labelLines = it) }, 1..2)
             ColorRow("Label color", part({ it.labelColor }) { copy(labelColor = it) })
@@ -497,47 +520,6 @@ private fun IconStyleGroups(
             ChoiceRow("Label font", part({ it.labelFont }) { copy(labelFont = it) }, FontChoice.entries)
         }
     }
-}
-
-@Composable
-private fun IconSettingsScreen(b: SettingsBinder) {
-    val context = LocalContext.current
-    val graph = LocalLauncherGraph.current
-    val apps by graph.appsRepository.apps.collectAsState()
-    val i = b.stored.icons
-    val packs by produceState(emptyList<IconPackInfo>()) { value = withContext(Dispatchers.IO) { IconPack.installed(context) } }
-    // A recognisable app for the shape swatches.
-    val sampleKey = remember(apps) { apps.firstOrNull { !it.isHidden }?.key }
-    SettingsGroup("Style") {
-        val pack = b.bind({ it.icons.iconPack }) { copy(icons = icons.copy(iconPack = it)) }
-        ChoiceRow(
-            "Icon pack",
-            packs.firstOrNull { it.packageName == i.iconPack },
-            listOf<IconPackInfo?>(null) + packs,
-            label = { it?.label ?: "System icons" },
-            modified = pack.modified,
-            onReset = pack::reset,
-        ) { v -> pack.set(v?.packageName) }
-        VisualChoiceRow("Shape", b.bind({ it.icons.shape }) { copy(icons = icons.copy(shape = it)) }, IconShapeKind.entries) { shape ->
-            val icon = rememberShapePreview(sampleKey, shape, 44.dp)
-            if (icon != null) Image(icon, contentDescription = null, modifier = Modifier.size(44.dp))
-        }
-        SwitchRow("Themed icons", b.bind({ it.icons.themedIcons }) { copy(icons = icons.copy(themedIcons = it)) }, "Tint icons with your wallpaper colors")
-    }
-    IconStyleGroups("Home screen icons", "home", b, { it.icons.home }) { copy(icons = icons.copy(home = it)) }
-    AdvancedSection("icons", 2) {
-        SwitchRow(
-            "Theme apps without a monochrome icon",
-            b.bind({ it.icons.themedFallback }) { copy(icons = icons.copy(themedFallback = it)) },
-            enabled = i.themedIcons,
-        )
-        SwitchRow(
-            "Normalize legacy icons",
-            b.bind({ it.icons.normalizeLegacy }) { copy(icons = icons.copy(normalizeLegacy = it)) },
-            "Put old square icons on a shaped background",
-        )
-    }
-    Hint("Dock, drawer and folder icons have their own size and label options on those pages.")
 }
 
 // ---- Drawer --------------------------------------------------------------------------------------

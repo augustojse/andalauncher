@@ -51,6 +51,7 @@ import com.anda.launcher.core.ui.theme.backdropSource
 import com.anda.launcher.core.ui.theme.homeBlurRadius
 import com.anda.launcher.core.ui.theme.isLauncherDark
 import com.anda.launcher.core.ui.theme.rememberBackdrop
+import com.anda.launcher.core.ui.theme.rememberLauncherColorScheme
 import com.anda.launcher.core.ui.theme.wallpaperBlurPx
 import com.anda.launcher.feature.badges.BadgeRepository
 import com.anda.launcher.feature.drawer.AppDrawer
@@ -79,7 +80,7 @@ fun LauncherRoot(activity: MainActivity, graph: AppGraph) {
     val settings = home.draftSettings ?: stored
     val dark = isLauncherDark(settings.theme)
     // Icons follow the stored spec only: re-rendering every icon per slider tick would stutter.
-    val iconsReady = rememberIconSpec(graph.iconRepository, stored, dark)
+    val iconsReady = rememberIconSpec(graph.iconRepository, stored, dark, rememberLauncherColorScheme(stored.theme))
     if (!iconsReady) return
 
     val apps by graph.appsRepository.apps.collectAsState()

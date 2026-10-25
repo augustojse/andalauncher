@@ -13,6 +13,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class IconPackInfo(val packageName: String, val label: String)
 
+/** One drawable an icon pack offers, under the pack's own [category] when it names one. */
+data class PackIcon(val name: String, val category: String?)
+
 /** An installed ADW / Nova / Go-format icon pack. */
 class IconPack private constructor(
     val packageName: String,
@@ -47,6 +50,36 @@ class IconPack private constructor(
 
     fun isCalendar(packageName: String, className: String): Boolean =
         filter.calendars.containsKey("$packageName/$className")
+
+    /** The drawable the pack maps an app to, if any. */
+    fun drawableNameFor(packageName: String, className: String): String? = filter.components["$packageName/$className"]
+
+    /**
+     * Every icon the pack offers, grouped by its own categories (`res/xml/drawable.xml`) when it
+     * has them, plus every icon its appfilter uses. Must run off the main thread.
+     */
+    val catalog: List<PackIcon> by lazy {
+        val listed = runCatching { readDrawableXml() }.getOrDefault(emptyList())
+        val seen = listed.mapTo(HashSet()) { it.name }
+        listed + filter.components.values.distinct().filter { it !in seen }.sorted().map { PackIcon(it, null) }
+    }
+
+    @SuppressLint("DiscouragedApi")
+    private fun readDrawableXml(): List<PackIcon> {
+        val id = resources.getIdentifier("drawable", "xml", packageName)
+        if (id == 0) return emptyList()
+        val parser = resources.getXml(id)
+        val out = ArrayList<PackIcon>()
+        val names = HashSet<String>()
+        var category: String? = null
+        for (tag in parser.tags()) {
+            when (tag.name) {
+                "category" -> category = tag.attributes["title"]?.takeIf { it.isNotBlank() }
+                "item" -> tag.attributes["drawable"]?.takeIf { it.isNotBlank() && names.add(it) }?.let { out += PackIcon(it, category) }
+            }
+        }
+        return out
+    }
 
     fun back(density: Int, seed: Int): Drawable? = filter.backs.pick(seed)?.let { drawable(it, density) }
     fun mask(density: Int): Drawable? = filter.masks.firstOrNull()?.let { drawable(it, density) }

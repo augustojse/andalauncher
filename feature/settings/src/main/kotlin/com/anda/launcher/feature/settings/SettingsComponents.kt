@@ -152,7 +152,7 @@ internal fun SettingsGroup(title: String? = null, content: @Composable ColumnSco
  * Power-user options, folded by default. Opens by itself when a search lands on one of its rows.
  */
 @Composable
-internal fun AdvancedSection(key: String, count: Int, content: @Composable ColumnScope.() -> Unit) {
+internal fun AdvancedSection(key: String, count: Int, title: String = "Advanced", content: @Composable ColumnScope.() -> Unit) {
     val forceOpen = LocalSettingsHighlight.current != null
     var expanded by rememberSaveable(key) { mutableStateOf(forceOpen) }
     val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "chevron")
@@ -169,7 +169,7 @@ internal fun AdvancedSection(key: String, count: Int, content: @Composable Colum
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Icon(Icons.Filled.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Advanced", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 Text("$count", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Icon(
                     Icons.Filled.ExpandMore,
@@ -321,7 +321,15 @@ internal fun SwitchRow(
  * Integer slider. The preview follows the thumb live; DataStore is written once, on release.
  */
 @Composable
-internal fun SliderRow(title: String, setting: Setting<Int>, range: IntRange, suffix: String = "", format: (Int) -> String = { "$it$suffix" }) {
+internal fun SliderRow(
+    title: String,
+    setting: Setting<Int>,
+    range: IntRange,
+    suffix: String = "",
+    /** Tick marks; wide ranges (angles, percentages) pass 0 for a smooth track. */
+    steps: Int = (range.last - range.first - 1).coerceAtLeast(0),
+    format: (Int) -> String = { "$it$suffix" },
+) {
     var local by remember(setting.value) { mutableFloatStateOf(setting.value.toFloat()) }
     SettingFrame(title, setting.modified, setting::reset, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -336,7 +344,7 @@ internal fun SliderRow(title: String, setting: Setting<Int>, range: IntRange, su
             },
             onValueChangeFinished = { setting.set(local.roundToInt()) },
             valueRange = range.first.toFloat()..range.last.toFloat(),
-            steps = (range.last - range.first - 1).coerceAtLeast(0),
+            steps = steps,
         )
     }
 }

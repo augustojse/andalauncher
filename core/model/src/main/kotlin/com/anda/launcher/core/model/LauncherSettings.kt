@@ -89,7 +89,19 @@ data class IconSettings(
     val dock: IconStyle = IconStyle(showLabels = false),
     val drawer: IconStyle = IconStyle(),
     val folder: IconStyle = IconStyle(),
-)
+    /** The corners of [IconShapeKind.Custom]. */
+    val customShape: CustomShape = CustomShape(),
+    /** The icon editor's style for every app (colors, layout, effects). */
+    val style: IconEdit = IconEdit(),
+    /** Per-app exceptions, keyed by [ComponentKey.flatten]. */
+    val perApp: Map<String, AppIconOverride> = emptyMap(),
+) {
+    fun exceptionFor(key: ComponentKey): AppIconOverride? = perApp[key.flatten()]
+
+    companion object {
+        const val MAX_EXCEPTIONS = 500
+    }
+}
 
 @Serializable
 data class IconStyle(
@@ -102,8 +114,12 @@ data class IconStyle(
     val labelFont: FontChoice = FontChoice.System,
 )
 
+/** New shapes go at the end: the ordinal is part of the icon cache key. */
 @Serializable
-enum class IconShapeKind { System, Circle, Squircle, RoundedSquare, Square, Teardrop, Cylinder, Hexagon }
+enum class IconShapeKind {
+    System, Circle, Squircle, RoundedSquare, Square, Teardrop, Cylinder, Hexagon,
+    Pebble, Clover, Flower, Sunny, Arch, Diamond, Octagon, Heart, Leaf, Egg, Custom,
+}
 
 @Serializable
 data class DrawerSettings(

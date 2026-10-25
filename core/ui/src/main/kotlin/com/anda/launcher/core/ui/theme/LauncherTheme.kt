@@ -46,11 +46,23 @@ fun isLauncherDark(settings: ThemeSettings): Boolean = when (settings.themeMode)
  */
 @Composable
 fun LauncherTheme(settings: ThemeSettings, content: @Composable () -> Unit) {
+    val wallpaper = rememberWallpaperTone()
+    val scheme = rememberLauncherColorScheme(settings, wallpaper)
+    val family = settings.font.toFontFamily()
+    val typography = remember(family) { Typography().withFamily(family) }
+    val shapes = remember(settings.cornerRadiusDp) { launcherShapes(settings.cornerRadiusDp) }
+    CompositionLocalProvider(LocalWallpaperTone provides wallpaper) {
+        MaterialTheme(colorScheme = scheme, typography = typography, shapes = shapes, content = content)
+    }
+}
+
+/** The color scheme [LauncherTheme] uses, for code outside the theme (the icon pipeline's palette). */
+@Composable
+fun rememberLauncherColorScheme(settings: ThemeSettings, wallpaper: WallpaperTone = rememberWallpaperTone()): ColorScheme {
     val context = LocalContext.current
     val dark = isLauncherDark(settings)
-    val wallpaper = rememberWallpaperTone()
     // Keyed on the wallpaper too: a new wallpaper re-seeds "From wallpaper" and refreshes Monet.
-    val scheme = remember(settings, dark, wallpaper) {
+    return remember(settings, dark, wallpaper) {
         var scheme = when (settings.colorSource) {
             ColorSource.Dynamic -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             ColorSource.Wallpaper -> {
@@ -73,12 +85,6 @@ fun LauncherTheme(settings: ThemeSettings, content: @Composable () -> Unit) {
         if (settings.surfaceTint > 0f) scheme = scheme.tinted(settings.surfaceTint)
         if (settings.highContrast) scheme = scheme.highContrast()
         scheme
-    }
-    val family = settings.font.toFontFamily()
-    val typography = remember(family) { Typography().withFamily(family) }
-    val shapes = remember(settings.cornerRadiusDp) { launcherShapes(settings.cornerRadiusDp) }
-    CompositionLocalProvider(LocalWallpaperTone provides wallpaper) {
-        MaterialTheme(colorScheme = scheme, typography = typography, shapes = shapes, content = content)
     }
 }
 

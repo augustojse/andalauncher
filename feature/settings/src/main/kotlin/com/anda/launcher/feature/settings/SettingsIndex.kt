@@ -17,6 +17,11 @@ internal enum class Screen(val title: String) {
     Backup("Backup & restore"),
     Dev("Dev"),
     About("About"),
+    IconEditor("Icon editor"),
+    ;
+
+    /** Where Back goes; Main when null. */
+    val parent: Screen? get() = if (this == IconEditor) Icons else null
 }
 
 /** One searchable row. [title] must match the row's on-screen title exactly (it's the highlight key). */
@@ -68,11 +73,16 @@ internal object SettingsIndex {
         IndexEntry("Require fingerprint for hidden & locked apps", Screen.Drawer, "biometric lock privacy auth"),
         IndexEntry("Show hidden apps in search", Screen.Drawer, "privacy"),
         // Icons
+        IndexEntry("Icon editor", Screen.Icons, "edit customize color colour material you background foreground gradient outline shadow rotate hue saturation"),
         IndexEntry("Icon pack", Screen.Icons, "adw nova theme"),
         IndexEntry("Shape", Screen.Icons, "icon shape circle squircle teardrop"),
         IndexEntry("Themed icons", Screen.Icons, "monochrome material you tint"),
         IndexEntry("Theme apps without a monochrome icon", Screen.Icons, "themed fallback"),
         IndexEntry("Normalize legacy icons", Screen.Icons, "old square background"),
+        IndexEntry("Add an exception", Screen.Icons, "unique per app icon different pack mix override custom single"),
+        IndexEntry("Reset icon style", Screen.Icons, "editor defaults undo"),
+        IndexEntry("Remove all exceptions", Screen.Icons, "unique per app icons reset"),
+        IndexEntry("Clear icon cache", Screen.Icons, "refresh reload rerender icon pack update"),
         IndexEntry("Icon size", Screen.Icons, "scale bigger smaller"),
         IndexEntry("Labels", Screen.Icons, "app names text"),
         IndexEntry("Label size", Screen.Icons, "text font size"),

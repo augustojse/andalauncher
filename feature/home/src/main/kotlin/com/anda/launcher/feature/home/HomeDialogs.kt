@@ -29,13 +29,17 @@ import com.anda.launcher.core.model.ShortcutItem
 import com.anda.launcher.feature.gestures.ActionPickerDialog
 import com.anda.launcher.feature.gestures.displayName
 
-/** Nova-style "Edit" dialog for a home item: label, swipe action and folder cover mode. */
+/**
+ * Nova-style "Edit" dialog for a home item: label, swipe action and folder cover mode. For an
+ * app, [onEditIcon] opens the icon editor on it.
+ */
 @Composable
 fun EditHomeItemDialog(
     item: HomeItem,
     apps: List<AppInfo>,
     controller: HomeController,
     onDismiss: () -> Unit,
+    onEditIcon: ((AppItem) -> Unit)? = null,
 ) {
     val originalTitle = when (item) {
         is AppItem -> item.title ?: apps.firstOrNull { it.key == item.key }?.label.orEmpty()
@@ -62,6 +66,12 @@ fun EditHomeItemDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Label") }, singleLine = true)
+                if (item is AppItem && onEditIcon != null) {
+                    Column(Modifier.fillMaxWidth().clickable { onEditIcon(item) }.padding(vertical = 8.dp)) {
+                        Text("Icon", style = MaterialTheme.typography.bodyLarge)
+                        Text("Pack, colors, shape…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
                 if (item is FolderItem) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {

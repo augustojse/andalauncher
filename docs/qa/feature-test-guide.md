@@ -321,6 +321,33 @@ Each case lists **Steps** (adb-drivable), the **Expect** list, and the **Look cl
   - every surface (home, dock, drawer, folders, search results) updates consistently;
   - labels don't collide at 120%.
 
+**ST-04b Icon editor (all apps)**
+- **Steps:**
+  1. Icons → **Edit** on the Icon editor card (or the brush in the top bar).
+  2. Color → preset **Material You**; Layout → Foreground size 80 %, Rotate 15°; Effects → Outline 4 %, Shadow on.
+  3. Shape → Custom, corners Cut 30 %; toggle the preview background (top-right button).
+  4. Press Back: expect "Discard changes?". Choose Save. Go Home.
+  5. Change the wallpaper (or Look & feel → Colors), go Home again.
+- **Expect:**
+  - the preview follows every slider while dragging, with no stutter;
+  - home, dock, drawer, folders and search all show the saved style;
+  - Material You colors follow the new wallpaper / theme without opening the editor again;
+  - Advanced → Reset icon style brings back the original colors (shape stays).
+- **Look closely at:** clipped shadows at the icon edge, outline thickness at small (dock/folder) sizes.
+
+**ST-04c Unique icons (per-app exceptions)**
+- **Steps:**
+  1. Set an icon pack (if one is installed).
+  2. Icons → Unique icons → **Add an exception** → pick an app → Source **Original**; Save.
+  3. Add a second exception: Source **Other pack**, **Pick an icon** (search the picker); Save.
+  4. Add a third: no source change, Shape → Heart, Color → preset Bold; Save.
+  5. Long-press an app on home → Edit → **Icon**: the editor opens for that app.
+  6. Remove one exception with its ✕.
+- **Expect:**
+  - only those apps change; every other icon keeps the pack and global style;
+  - each row's summary says what's different ("Original icon", "<pack> · picked icon", "heart shape, own style");
+  - removing an exception restores that app straight away.
+
 **ST-05 Look & feel: themes, colours and blur**
 - **Steps:**
   1. Theme → Dark, then OLED.

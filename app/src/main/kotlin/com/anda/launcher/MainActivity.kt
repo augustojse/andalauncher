@@ -27,6 +27,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.anda.launcher.core.model.AppInfo
 import com.anda.launcher.core.model.AppOverride
+import com.anda.launcher.core.model.ComponentKey
 import com.anda.launcher.core.model.DrawerGroup
 import com.anda.launcher.core.model.Gesture
 import com.anda.launcher.core.model.HomeItem
@@ -200,10 +201,13 @@ class MainActivity :
      * Settings runs in its own task (see its `taskAffinity` in the manifest): inside the home
      * task it was wiped on every Home press (`clearTaskOnLaunch`) and never showed in Recents.
      */
-    override fun openSettings(screen: String?) {
+    override fun openSettings(screen: String?) = openSettings(screen, iconApp = null)
+
+    private fun openSettings(screen: String?, iconApp: ComponentKey?) {
         closeTransientUi()
         val intent = Intent(this, SettingsActivity::class.java)
             .putExtra(SettingsActivity.EXTRA_SCREEN, screen)
+            .putExtra(SettingsActivity.EXTRA_ICON_APP, iconApp?.flatten())
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         // A deep link (e.g. "Folder settings") must land on that page, not wherever an existing
         // settings task was left; a plain "Settings" just brings the existing task back.
@@ -261,7 +265,10 @@ class MainActivity :
     override fun editItem(item: HomeItem) {
         overlay.showDialog {
             val apps by graph.appsRepository.apps.collectAsState()
-            EditHomeItemDialog(item, apps, home, overlay::dismissDialog)
+            EditHomeItemDialog(item, apps, home, overlay::dismissDialog) { app ->
+                overlay.dismissDialog()
+                openSettings(SettingsActivity.SCREEN_ICON_EDITOR, iconApp = app.key)
+            }
         }
     }
 
@@ -297,6 +304,10 @@ class MainActivity :
                     apps = apps,
                     onSave = { next -> lifecycleScope.launch { graph.overridesRepository.update(app.key) { next } } },
                     onDismiss = overlay::dismissDialog,
+                    onEditIcon = {
+                        overlay.dismissDialog()
+                        openSettings(SettingsActivity.SCREEN_ICON_EDITOR, iconApp = app.key)
+                    },
                 )
             }
         }

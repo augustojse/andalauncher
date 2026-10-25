@@ -6,6 +6,16 @@ Every update gets a new version here, newest first. The build takes `versionName
 - Heading: `## X.Y.Z — YYYY-MM-DD`. Bump Z for fixes only, Y for new features (resetting Z).
 - One bullet per user-visible change, starting with `New:`, `Changed:` or `Fixed:`.
 
+## 0.5.0 — 2026-10-22
+- New: Icon editor (Settings → Icons, at the top). Change backgrounds (the app's own, a color, a gradient or none), give icons one flat color, adjust hue, saturation, brightness and contrast, resize, move, rotate or mirror the foreground, and add padding, an outline or a shadow, all with a live preview on light, dark or theme backgrounds.
+- New: editor colors can follow Material You: pick a theme role such as Primary container and icons change with your wallpaper and theme. One-tap presets (Material You, Tonal, Bold, Gradient, Glyph only, Grayscale…).
+- New: 10 more icon shapes (Pebble, Clover, Flower, Sunny, Arch, Diamond, Octagon, Heart, Leaf, Egg) and a Custom shape built corner by corner (round, squircle, cut or sharp, any size).
+- New: Unique icons. Keep an icon pack or style for most apps and give single apps an exception: their original icon, an icon from another pack (pick any icon, with search and suggestions), themed on or off, or a style and shape of their own.
+- New: long-press an app → Edit → Icon opens the editor for that app.
+- New: Advanced on the Icons page can reset the editor style, remove all exceptions or clear the icon cache.
+- Changed: the Icons page is reorganised: the editor first, then pack, shape, themed icons and size, then Unique icons, then Advanced.
+- Changed: themed icons take their colors from the launcher's theme, so they match a custom or OLED theme too.
+
 ## 0.4.0 — 2026-10-22
 - New: Look & feel → Theme picks Auto, Light, Dark, OLED (true black) or Custom, each shown as a small preview.
 - New: the custom theme starts from Material You, your wallpaper or a picked color; under Advanced you can set its primary, secondary, tertiary and surface colors one by one, from wallpaper and Material You suggestions or any color.
