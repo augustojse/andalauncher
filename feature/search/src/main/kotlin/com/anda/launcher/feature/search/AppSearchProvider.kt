@@ -19,7 +19,7 @@ internal class AppSearchProvider : SearchProvider {
             .mapNotNull { app ->
                 val labelScore = FuzzyMatcher.score(request.query, app.sortKey, fuzzy)
                 val renamedScore = if (labelScore < 500 && app.originalLabel != app.label) {
-                    FuzzyMatcher.score(request.query, FuzzyMatcher.normalize(app.originalLabel), fuzzy) * 3 / 4
+                    FuzzyMatcher.score(request.query, app.originalSortKey, fuzzy) * 3 / 4
                 } else {
                     0
                 }

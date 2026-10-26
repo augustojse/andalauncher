@@ -24,6 +24,7 @@ class SearchEngineTest {
         category = AppCategory.Other,
         isWorkProfile = false,
         sortKey = FuzzyMatcher.normalize(label),
+        originalSortKey = FuzzyMatcher.normalize(original),
     )
 
     private class Fake(
@@ -97,6 +98,14 @@ class SearchEngineTest {
         val results = SearchEngine(listOf(AppSearchProvider()))
             .results("spotify", settings, renamed, emptyMap(), false).first()
         assertEquals(listOf("Music"), results.apps.map { it.app.label })
+    }
+
+    @Test
+    fun originalNamesMatchWithoutAccents() = runBlocking {
+        val renamed = listOf(app("Tickets", original = "Pokémon GO"), app("Maps"))
+        val results = SearchEngine(listOf(AppSearchProvider()))
+            .results("pokemon", settings, renamed, emptyMap(), false).first()
+        assertEquals(listOf("Tickets"), results.apps.map { it.app.label })
     }
 
     @Test

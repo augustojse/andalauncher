@@ -15,6 +15,8 @@ data class AppInfo(
     val isLocked: Boolean = false,
     /** Lower-cased label with diacritics removed, precomputed for search and sorting. */
     val sortKey: String = label.lowercase(),
+    /** [originalLabel] normalized the same way, so search never normalizes it per query. */
+    val originalSortKey: String = originalLabel.lowercase(),
 )
 
 /** Drawer categories used for Smart-Launcher-style automatic tabs. */

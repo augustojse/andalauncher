@@ -81,6 +81,7 @@ class AppsRepository(
         rawApps.values.map { r ->
             val o = ov[r.key]
             val label = o?.label ?: r.label
+            val sortKey = FuzzyMatcher.normalize(label)
             AppInfo(
                 key = r.key,
                 label = label,
@@ -91,7 +92,8 @@ class AppsRepository(
                 isWorkProfile = r.isWork,
                 isHidden = o?.hidden == true,
                 isLocked = o?.locked == true,
-                sortKey = FuzzyMatcher.normalize(label),
+                sortKey = sortKey,
+                originalSortKey = if (label == r.label) sortKey else FuzzyMatcher.normalize(r.label),
             )
         }.sortedWith { a, b -> collator.compare(a.sortKey, b.sortKey) }.toImmutableList()
     }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Eagerly, persistentListOf())
