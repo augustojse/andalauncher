@@ -1,4 +1,4 @@
-package com.anda.launcher.feature.settings
+package com.anda.launcher.feature.settings.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,9 +22,9 @@ import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -54,13 +55,28 @@ import com.anda.launcher.core.icons.IconPackInfo
 import com.anda.launcher.core.model.AppIconOverride
 import com.anda.launcher.core.model.AppInfo
 import com.anda.launcher.core.model.ComponentKey
+import com.anda.launcher.core.model.FontChoice
 import com.anda.launcher.core.model.IconEdit
 import com.anda.launcher.core.model.IconShapeKind
 import com.anda.launcher.core.model.IconSource
+import com.anda.launcher.core.model.IconStyle
 import com.anda.launcher.core.model.LauncherSettings
 import com.anda.launcher.core.ui.LocalLauncherGraph
 import com.anda.launcher.core.ui.icon.rememberAppIcon
 import com.anda.launcher.core.ui.icon.rememberShapePreview
+import com.anda.launcher.feature.settings.components.SettingsBinder
+import com.anda.launcher.feature.settings.components.controls.ChoiceRow
+import com.anda.launcher.feature.settings.components.controls.ColorRow
+import com.anda.launcher.feature.settings.components.controls.NavRow
+import com.anda.launcher.feature.settings.components.controls.SliderRow
+import com.anda.launcher.feature.settings.components.controls.SwitchRow
+import com.anda.launcher.feature.settings.components.controls.VisualChoiceRow
+import com.anda.launcher.feature.settings.components.humanize
+import com.anda.launcher.feature.settings.components.layout.AdvancedSection
+import com.anda.launcher.feature.settings.components.layout.Hint
+import com.anda.launcher.feature.settings.components.layout.SettingFrame
+import com.anda.launcher.feature.settings.components.layout.SettingTitle
+import com.anda.launcher.feature.settings.components.layout.SettingsGroup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -362,4 +378,33 @@ internal fun AppPickerDialog(
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+/**
+ * Size and labels up front; label typography folded into Advanced. Used by every icon area.
+ */
+@Composable
+internal fun IconStyleGroups(
+    title: String,
+    key: String,
+    b: SettingsBinder,
+    get: (LauncherSettings) -> IconStyle,
+    put: LauncherSettings.(IconStyle) -> LauncherSettings,
+) {
+    fun <T> part(read: (IconStyle) -> T, write: IconStyle.(T) -> IconStyle) =
+        b.bind({ read(get(it)) }) { v -> this.put(get(this).write(v)) }
+    val style = get(b.stored)
+    SettingsGroup(title) {
+        SliderRow("Icon size", part({ it.sizePercent }) { copy(sizePercent = it) }, 50..150, "%")
+        SwitchRow("Labels", part({ it.showLabels }) { copy(showLabels = it) })
+    }
+    if (style.showLabels) {
+        AdvancedSection("labels-$key", 5, title = "Label options") {
+            SliderRow("Label size", part({ it.labelSizeSp }) { copy(labelSizeSp = it) }, 8..18, " sp")
+            SliderRow("Label lines", part({ it.labelLines }) { copy(labelLines = it) }, 1..2)
+            ColorRow("Label color", part({ it.labelColor }) { copy(labelColor = it) })
+            SwitchRow("Label shadow", part({ it.labelShadow }) { copy(labelShadow = it) })
+            ChoiceRow("Label font", part({ it.labelFont }) { copy(labelFont = it) }, FontChoice.entries)
+        }
+    }
 }

@@ -1,4 +1,4 @@
-package com.anda.launcher.feature.settings
+package com.anda.launcher.feature.settings.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +28,22 @@ import com.anda.launcher.core.model.FontChoice
 import com.anda.launcher.core.model.PaletteBase
 import com.anda.launcher.core.model.ThemeMode
 import com.anda.launcher.core.ui.theme.LocalWallpaperTone
+import com.anda.launcher.feature.settings.components.Setting
+import com.anda.launcher.feature.settings.components.SettingsBinder
+import com.anda.launcher.feature.settings.components.controls.ChoiceRow
+import com.anda.launcher.feature.settings.components.controls.ColorRow
+import com.anda.launcher.feature.settings.components.controls.FloatSliderRow
+import com.anda.launcher.feature.settings.components.controls.SegmentedRow
+import com.anda.launcher.feature.settings.components.controls.SliderRow
+import com.anda.launcher.feature.settings.components.controls.SwitchRow
+import com.anda.launcher.feature.settings.components.controls.VisualChoiceRow
+import com.anda.launcher.feature.settings.components.controls.toArgbLong
+import com.anda.launcher.feature.settings.components.humanize
+import com.anda.launcher.feature.settings.components.layout.AdvancedSection
+import com.anda.launcher.feature.settings.components.layout.Hint
+import com.anda.launcher.feature.settings.components.layout.SettingFrame
+import com.anda.launcher.feature.settings.components.layout.SettingTitle
+import com.anda.launcher.feature.settings.components.layout.SettingsGroup
 
 internal fun themeLabel(mode: ThemeMode): String = when (mode) {
     ThemeMode.System -> "Auto"

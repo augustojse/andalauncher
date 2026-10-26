@@ -1,4 +1,4 @@
-package com.anda.launcher.feature.settings
+package com.anda.launcher.feature.settings.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -32,6 +32,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.anda.launcher.core.model.WebEngine
+import com.anda.launcher.feature.settings.components.SettingsBinder
+import com.anda.launcher.feature.settings.components.controls.NavRow
+import com.anda.launcher.feature.settings.components.controls.SwitchRow
+import com.anda.launcher.feature.settings.components.layout.AdvancedSection
+import com.anda.launcher.feature.settings.components.layout.Hint
+import com.anda.launcher.feature.settings.components.layout.SettingsGroup
 
 @Composable
 internal fun SearchSettingsScreen(b: SettingsBinder) {

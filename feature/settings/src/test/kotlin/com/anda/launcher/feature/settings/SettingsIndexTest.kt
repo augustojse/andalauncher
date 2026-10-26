@@ -1,5 +1,6 @@
 package com.anda.launcher.feature.settings
 
+import com.anda.launcher.feature.settings.components.humanize
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

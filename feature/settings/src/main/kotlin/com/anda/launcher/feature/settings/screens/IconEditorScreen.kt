@@ -1,4 +1,4 @@
-package com.anda.launcher.feature.settings
+package com.anda.launcher.feature.settings.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -105,6 +104,20 @@ import com.anda.launcher.core.ui.icon.iconSpec
 import com.anda.launcher.core.ui.icon.rememberAppIcon
 import com.anda.launcher.core.ui.icon.rememberIconPreview
 import com.anda.launcher.core.ui.theme.isLauncherDark
+import com.anda.launcher.feature.settings.components.Setting
+import com.anda.launcher.feature.settings.components.Update
+import com.anda.launcher.feature.settings.components.controls.ChoiceRow
+import com.anda.launcher.feature.settings.components.controls.ColorPickerDialog
+import com.anda.launcher.feature.settings.components.controls.NavRow
+import com.anda.launcher.feature.settings.components.controls.SegmentedRow
+import com.anda.launcher.feature.settings.components.controls.SliderRow
+import com.anda.launcher.feature.settings.components.controls.SwitchRow
+import com.anda.launcher.feature.settings.components.controls.toArgbLong
+import com.anda.launcher.feature.settings.components.humanize
+import com.anda.launcher.feature.settings.components.layout.Hint
+import com.anda.launcher.feature.settings.components.layout.SettingFrame
+import com.anda.launcher.feature.settings.components.layout.SettingTitle
+import com.anda.launcher.feature.settings.components.layout.SettingsGroup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
