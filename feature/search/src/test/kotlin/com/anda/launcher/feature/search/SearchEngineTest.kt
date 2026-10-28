@@ -109,6 +109,30 @@ class SearchEngineTest {
     }
 
     @Test
+    fun latinSpellingFindsNamesInOtherScripts() = runBlocking {
+        val cyrillic = listOf(app("Телеграм"), app("Maps"))
+        val results = SearchEngine(listOf(AppSearchProvider()))
+            .results("telegram", settings, cyrillic, emptyMap(), false, latinKeys = mapOf("Телеграм" to "telegram")).first()
+        assertEquals(listOf("Телеграм"), results.apps.map { it.app.label })
+    }
+
+    @Test
+    fun aLatinNameRanksAboveATransliteratedOne() = runBlocking {
+        val both = listOf(app("Телеграм"), app("Telegram"))
+        val results = SearchEngine(listOf(AppSearchProvider()))
+            .results("telegram", settings, both, emptyMap(), false, latinKeys = mapOf("Телеграм" to "telegram")).first()
+        assertEquals(listOf("Telegram", "Телеграм"), results.apps.map { it.app.label })
+    }
+
+    @Test
+    fun otherAlphabetsOffIgnoresLatinKeys() = runBlocking {
+        val off = settings.copy(transliterate = false)
+        val results = SearchEngine(listOf(AppSearchProvider()))
+            .results("telegram", off, listOf(app("Телеграм")), emptyMap(), false, latinKeys = mapOf("Телеграм" to "telegram")).first()
+        assertTrue(results.apps.isEmpty())
+    }
+
+    @Test
     fun typosFindApps() = runBlocking {
         val results = SearchEngine(listOf(AppSearchProvider())).run("spotfiy").first()
         assertEquals(listOf("Spotify"), results.apps.map { it.app.label })

@@ -108,6 +108,7 @@ internal object SettingsIndex {
         IndexEntry("Calculator", Screen.Search, "math"),
         IndexEntry("Unit converter", Screen.Search, "conversion"),
         IndexEntry("Fuzzy matching", Screen.Search, "typo"),
+        IndexEntry("Other alphabets", Screen.Search, "transliterate script cyrillic greek japanese korean arabic latin"),
         IndexEntry("Enter launches top result", Screen.Search, "keyboard"),
         IndexEntry("Web search suggestion", Screen.Search, "google browser"),
         IndexEntry("Quick actions", Screen.Search, "call text sms email url link alarm timer calendar event"),

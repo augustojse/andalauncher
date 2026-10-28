@@ -6,6 +6,9 @@ Every update gets a new version here, newest first. The build takes `versionName
 - Heading: `## X.Y.Z — YYYY-MM-DD`. Bump Z for fixes only, Y for new features (resetting Z).
 - One bullet per user-visible change, starting with `New:`, `Changed:` or `Fixed:`.
 
+## 0.6.0 — 2026-10-27
+- New: search finds apps and shortcuts named in other alphabets when you type their Latin spelling, so "telegram" finds Телеграм and "kamera" finds Камера (Settings → Search → Advanced → Other alphabets, on by default). It is ready a few seconds after the launcher starts.
+
 ## 0.5.0 — 2026-10-22
 - New: Icon editor (Settings → Icons, at the top). Change backgrounds (the app's own, a color, a gradient or none), give icons one flat color, adjust hue, saturation, brightness and contrast, resize, move, rotate or mirror the foreground, and add padding, an outline or a shadow, all with a live preview on light, dark or theme backgrounds.
 - New: editor colors can follow Material You: pick a theme role such as Primary container and icons change with your wallpaper and theme. One-tap presets (Material You, Tonal, Bold, Gradient, Glyph only, Grayscale…).

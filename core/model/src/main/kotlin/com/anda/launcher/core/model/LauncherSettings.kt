@@ -201,6 +201,8 @@ data class SearchSettings(
     val systemSettings: Boolean = true,
     val webSearch: Boolean = true,
     val fuzzyMatching: Boolean = true,
+    /** Names in other scripts also match their Latin spelling ("telegram" finds Телеграм). */
+    val transliterate: Boolean = true,
     /** Launch the top result when pressing enter (Niagara/Kiss behaviour). */
     val launchTopOnEnter: Boolean = true,
     /** Call, text, email, open, alarm, timer and calendar actions read from the query. */

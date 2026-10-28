@@ -25,10 +25,16 @@ internal class ShortcutSearchProvider(private val graph: LauncherGraph) : Search
                 Entry(it.`package`, it.id, graph.users.serialOf(it.userHandle), label, FuzzyMatcher.normalize(label))
             }
             cacheVersion = version
+            // Shortcut names in other scripts get Latin keys on the next background pass.
+            if (request.settings.transliterate) graph.latinKeys.request(cache.map { it.label })
         }
         val appLabels = request.apps.associate { it.key.packageName to it.label }
+        val latin = if (request.settings.transliterate) request.latinKeys else emptyMap()
         return cache.mapNotNull { e ->
-            val score = FuzzyMatcher.score(request.query, e.normalized, fuzzy = false)
+            val score = maxOf(
+                FuzzyMatcher.score(request.query, e.normalized, fuzzy = false),
+                latin[e.label]?.let { FuzzyMatcher.score(request.query, it, fuzzy = false) * 9 / 10 } ?: 0,
+            )
             if (score < 500) null else SearchResult.Shortcut(e.packageName, e.id, e.user, e.label, appLabels[e.packageName].orEmpty(), score - 200)
         }.sortedByDescending { it.score }.take(MAX_SHORTCUTS)
     }

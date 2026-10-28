@@ -53,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -160,8 +161,9 @@ fun AppDrawer(
         val hiddenCount = remember(apps) { apps.count { it.isHidden } }
 
         val includeHidden = drawer.hiddenAppsInSearch || controller.hiddenUnlocked
-        val results by produceState(SearchResults(), controller.query, apps, stats, settings.search, includeHidden) {
-            engine.results(controller.query, settings.search, apps, stats, includeHidden).collect { value = it }
+        val latinKeys by controller.graph.latinKeys.keys.collectAsState()
+        val results by produceState(SearchResults(), controller.query, apps, stats, settings.search, includeHidden, latinKeys) {
+            engine.results(controller.query, settings.search, apps, stats, includeHidden, latinKeys).collect { value = it }
         }
 
         Column(

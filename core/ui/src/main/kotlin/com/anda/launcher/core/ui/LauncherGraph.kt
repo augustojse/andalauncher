@@ -4,6 +4,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import com.anda.launcher.core.apps.AppLauncher
 import com.anda.launcher.core.apps.AppsRepository
 import com.anda.launcher.core.apps.DefaultLayoutProvider
+import com.anda.launcher.core.apps.LatinKeyIndex
 import com.anda.launcher.core.apps.ShortcutRepository
 import com.anda.launcher.core.apps.UserResolver
 import com.anda.launcher.core.data.AppOverridesRepository
@@ -26,6 +27,7 @@ interface LauncherGraph {
     val layoutRepository: LayoutRepository
     val appsRepository: AppsRepository
     val shortcutRepository: ShortcutRepository
+    val latinKeys: LatinKeyIndex
     val iconRepository: IconRepository
     val appLauncher: AppLauncher
     val overridesRepository: AppOverridesRepository

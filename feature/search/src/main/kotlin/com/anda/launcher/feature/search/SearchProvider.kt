@@ -12,6 +12,8 @@ class SearchRequest(
     val apps: List<AppInfo>,
     val stats: Map<ComponentKey, LaunchStat>,
     val includeHidden: Boolean,
+    /** Latin keys of labels in other scripts, as far as the background pass has built them. */
+    val latinKeys: Map<String, String> = emptyMap(),
 )
 
 /**

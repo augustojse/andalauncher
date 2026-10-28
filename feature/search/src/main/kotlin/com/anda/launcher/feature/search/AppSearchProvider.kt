@@ -5,7 +5,8 @@ import com.anda.launcher.core.model.SearchSettings
 
 /**
  * Ranks apps by match quality plus a usage bonus from our own launch stats. The label counts
- * fully; the original label behind a rename and the package name count for less.
+ * fully; the original label behind a rename, the Latin spelling of a name in another script and
+ * the package name count for less.
  */
 internal class AppSearchProvider : SearchProvider {
     override val id = "apps"
@@ -23,8 +24,14 @@ internal class AppSearchProvider : SearchProvider {
                 } else {
                     0
                 }
+                // The Latin spelling of a name in another script ranks just below the name itself.
+                val latinScore = if (labelScore < 500 && request.settings.transliterate) {
+                    request.latinKeys[app.label]?.let { FuzzyMatcher.score(request.query, it, fuzzy) * 9 / 10 } ?: 0
+                } else {
+                    0
+                }
                 val packageScore = if (labelScore == 0) FuzzyMatcher.score(request.query, app.key.packageName.substringAfterLast('.'), false) / 2 else 0
-                val score = maxOf(labelScore, renamedScore, packageScore)
+                val score = maxOf(labelScore, renamedScore, latinScore, packageScore)
                 if (score <= 0) return@mapNotNull null
                 val usage = (request.stats[app.key]?.count ?: 0).coerceAtMost(50) * 2
                 SearchResult.App(app, score + usage)

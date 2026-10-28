@@ -10,6 +10,7 @@ import android.util.Log
 import com.anda.launcher.core.apps.AppLauncher
 import com.anda.launcher.core.apps.AppsRepository
 import com.anda.launcher.core.apps.DefaultLayoutProvider
+import com.anda.launcher.core.apps.LatinKeyIndex
 import com.anda.launcher.core.apps.PackageEvent
 import com.anda.launcher.core.apps.ShortcutRepository
 import com.anda.launcher.core.apps.UserResolver
@@ -36,6 +37,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** The object graph (ADR 0003). Everything is lazy so cold start only pays for what it touches. */
@@ -62,6 +64,7 @@ class AppGraph(private val app: Application) : LauncherGraph {
     override val overridesRepository by lazy { AppOverridesRepository(database) }
     override val appsRepository by lazy { AppsRepository(app, appScope, users, overridesRepository.overrides) }
     override val shortcutRepository by lazy { ShortcutRepository(app, users) }
+    override val latinKeys by lazy { LatinKeyIndex() }
     override val iconRepository by lazy { IconRepository(app, appsRepository, shortcutRepository) }
     override val launchStatsRepository by lazy { LaunchStatsRepository(database) }
     override val drawerGroupsRepository by lazy { DrawerGroupsRepository(database) }
@@ -82,6 +85,13 @@ class AppGraph(private val app: Application) : LauncherGraph {
             }
         }
         registerProfileReceiver()
+        appScope.launch(Dispatchers.Default) {
+            latinKeys.run(
+                labels = appsRepository.apps.map { apps -> apps.map { it.label } },
+                enabled = settingsRepository.settings.filterNotNull().map { it.search.transliterate },
+                startDelayMs = LATIN_KEYS_DELAY_MS,
+            )
+        }
         // Housekeeping waits until start-up is over, and is skipped entirely in safe mode: it may
         // be what keeps crashing.
         if (!crashGuard.safeMode) {
@@ -156,5 +166,8 @@ class AppGraph(private val app: Application) : LauncherGraph {
     private companion object {
         const val TAG = "AndaLauncher"
         const val HOUSEKEEPING_DELAY_MS = 30_000L
+
+        /** Latin search keys load ICU rules; a few seconds keeps that out of start-up. */
+        const val LATIN_KEYS_DELAY_MS = 3_000L
     }
 }

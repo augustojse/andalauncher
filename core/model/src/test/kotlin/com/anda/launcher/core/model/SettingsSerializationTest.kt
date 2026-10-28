@@ -28,6 +28,8 @@ class SettingsSerializationTest {
         val decoded = json.decodeFromString<LauncherSettings>("""{"home":{"columns":4},"future":1}""")
         assertEquals(4, decoded.home.columns)
         assertEquals(HomeSettings().rows, decoded.home.rows)
+        // Settings saved before 0.6.0 turn script-insensitive search on.
+        assertEquals(true, decoded.search.transliterate)
         assertEquals(DockSettings(), decoded.dock)
     }
 

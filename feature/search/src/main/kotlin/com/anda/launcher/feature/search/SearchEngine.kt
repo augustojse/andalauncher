@@ -45,13 +45,14 @@ class SearchEngine(
         apps: List<AppInfo>,
         stats: Map<ComponentKey, LaunchStat>,
         includeHidden: Boolean,
+        latinKeys: Map<String, String> = emptyMap(),
     ): Flow<SearchResults> = channelFlow {
         val q = query.trim()
         if (q.isEmpty()) {
             send(SearchResults())
             return@channelFlow
         }
-        val request = SearchRequest(q, settings, apps, stats, includeHidden)
+        val request = SearchRequest(q, settings, apps, stats, includeHidden, latinKeys)
         val active = providers.filter { it.isEnabled(settings) }
         val found = HashMap<String, List<SearchResult>>()
         val lock = Mutex()

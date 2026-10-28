@@ -67,11 +67,16 @@ internal fun SearchSettingsScreen(b: SettingsBinder) {
         SwitchRow("Web search suggestion", b.bind({ it.search.webSearch }) { copy(search = search.copy(webSearch = it)) })
     }
     WebEnginesGroup(b)
-    AdvancedSection("search", 3) {
+    AdvancedSection("search", 4) {
         SwitchRow(
             "Fuzzy matching",
             b.bind({ it.search.fuzzyMatching }) { copy(search = search.copy(fuzzyMatching = it)) },
             "\"ggl\" finds Google, \"spotfiy\" finds Spotify",
+        )
+        SwitchRow(
+            "Other alphabets",
+            b.bind({ it.search.transliterate }) { copy(search = search.copy(transliterate = it)) },
+            "Names in other scripts match their Latin spelling: \"telegram\" finds Телеграм",
         )
         SwitchRow(
             "Enter launches top result",
