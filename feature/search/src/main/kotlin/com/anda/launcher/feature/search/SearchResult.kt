@@ -16,7 +16,14 @@ sealed interface SearchResult {
         val appLabel: String,
         override val score: Int,
     ) : SearchResult
-    data class Contact(val name: String, val lookupUri: Uri, val photoUri: Uri?, override val score: Int) : SearchResult
+    data class Contact(
+        val name: String,
+        val lookupUri: Uri,
+        val photoUri: Uri?,
+        override val score: Int,
+        /** Primary number, for the Call and Message buttons; null without one or with them off. */
+        val phone: String? = null,
+    ) : SearchResult
     data class Calculation(val expression: String, val result: String, override val score: Int = 2000) : SearchResult
     data class Conversion(val line: String, override val score: Int = 1900) : SearchResult
     data class SystemSetting(val title: String, val action: String, override val score: Int) : SearchResult

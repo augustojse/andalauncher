@@ -105,6 +105,7 @@ internal object SettingsIndex {
         IndexEntry("Reset gestures to defaults", Screen.Gestures, "restore"),
         // Search
         IndexEntry("Contacts", Screen.Search, "people search"),
+        IndexEntry("Call and message buttons", Screen.Search, "contact phone dial sms text"),
         IndexEntry("Calculator", Screen.Search, "math"),
         IndexEntry("Unit converter", Screen.Search, "conversion"),
         IndexEntry("Fuzzy matching", Screen.Search, "typo"),

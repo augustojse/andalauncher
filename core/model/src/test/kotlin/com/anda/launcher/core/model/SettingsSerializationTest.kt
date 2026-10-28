@@ -30,6 +30,7 @@ class SettingsSerializationTest {
         assertEquals(HomeSettings().rows, decoded.home.rows)
         // Settings saved before 0.6.0 turn script-insensitive search on.
         assertEquals(true, decoded.search.transliterate)
+        assertEquals(true, decoded.search.contactActions)
         assertEquals(DockSettings(), decoded.dock)
     }
 

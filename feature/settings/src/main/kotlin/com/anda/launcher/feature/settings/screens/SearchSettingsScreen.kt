@@ -56,6 +56,12 @@ internal fun SearchSettingsScreen(b: SettingsBinder) {
                 contacts.set(v)
             }
         }
+        SwitchRow(
+            "Call and message buttons",
+            b.bind({ it.search.contactActions }) { copy(search = search.copy(contactActions = it)) },
+            "On contact results with a phone number",
+            enabled = contacts.value,
+        )
         SwitchRow("Calculator", b.bind({ it.search.calculator }) { copy(search = search.copy(calculator = it)) }, "12*7, 15% of 80")
         SwitchRow("Unit converter", b.bind({ it.search.unitConverter }) { copy(search = search.copy(unitConverter = it)) }, "5 km in miles")
         SwitchRow(

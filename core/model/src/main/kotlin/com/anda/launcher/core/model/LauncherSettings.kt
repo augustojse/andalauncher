@@ -196,6 +196,8 @@ data class SearchSettings(
     val apps: Boolean = true,
     val shortcuts: Boolean = true,
     val contacts: Boolean = false,
+    /** Call and Message buttons on contact results that have a phone number. */
+    val contactActions: Boolean = true,
     val calculator: Boolean = true,
     val unitConverter: Boolean = true,
     val systemSettings: Boolean = true,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,9 +25,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.Shortcut
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
@@ -39,6 +42,7 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -236,8 +240,21 @@ private fun ResultRow(result: SearchResult, shape: Shape, actions: SearchResultA
             shape = shape,
             leading = { InitialAvatar(result.name) },
             title = result.name,
-            subtitle = "Contact",
+            subtitle = result.phone ?: "Contact",
             onClick = { actions.openIntent(Intent(Intent.ACTION_VIEW, result.lookupUri)) },
+            trailing = result.phone?.let { phone ->
+                {
+                    // ACTION_DIAL and SENDTO open the dialer and messages app: no call permission.
+                    Row {
+                        ContactAction(Icons.AutoMirrored.Filled.Message, "Message ${result.name}") {
+                            actions.openIntent(QueryActionIntents.intent(QueryAction.Message(phone)))
+                        }
+                        ContactAction(Icons.Filled.Call, "Call ${result.name}") {
+                            actions.openIntent(QueryActionIntents.intent(QueryAction.Call(phone)))
+                        }
+                    }
+                }
+            },
         )
         is SearchResult.SystemSetting -> SegmentRow(
             shape = shape,
@@ -251,7 +268,14 @@ private fun ResultRow(result: SearchResult, shape: Shape, actions: SearchResultA
 }
 
 @Composable
-private fun SegmentRow(shape: Shape, leading: @Composable () -> Unit, title: String, subtitle: String?, onClick: () -> Unit) {
+private fun SegmentRow(
+    shape: Shape,
+    leading: @Composable () -> Unit,
+    title: String,
+    subtitle: String?,
+    onClick: () -> Unit,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+) {
     Surface(
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -275,7 +299,15 @@ private fun SegmentRow(shape: Shape, leading: @Composable () -> Unit, title: Str
                     )
                 }
             }
+            trailing?.invoke(this)
         }
+    }
+}
+
+@Composable
+private fun ContactAction(icon: ImageVector, description: String, onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(icon, contentDescription = description, tint = MaterialTheme.colorScheme.primary)
     }
 }
 
