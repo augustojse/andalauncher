@@ -24,6 +24,19 @@ sealed interface SearchResult {
         /** Primary number, for the Call and Message buttons; null without one or with them off. */
         val phone: String? = null,
     ) : SearchResult
+    /** One calendar event, at its next occurrence (or its latest past one). Times in epoch ms. */
+    data class Event(
+        val eventId: Long,
+        val title: String,
+        val begin: Long,
+        val end: Long,
+        val allDay: Boolean,
+        /** The calendar's colour (ARGB), or null to use the theme's. */
+        val color: Int?,
+        /** "Today · 14:00 – 15:00", built when the result is. */
+        val dateLine: String,
+        override val score: Int,
+    ) : SearchResult
     data class Calculation(val expression: String, val result: String, override val score: Int = 2000) : SearchResult
     data class Conversion(val line: String, override val score: Int = 1900) : SearchResult
     data class SystemSetting(val title: String, val action: String, override val score: Int) : SearchResult

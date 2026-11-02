@@ -1,6 +1,8 @@
 package com.anda.launcher.feature.search
 
+import android.content.ContentUris
 import android.content.Intent
+import android.provider.CalendarContract
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.Shortcut
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
@@ -53,7 +56,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +74,7 @@ enum class SearchCategory(val label: String, val icon: ImageVector) {
     Apps("Apps", Icons.Filled.Apps),
     Shortcuts("Shortcuts", Icons.AutoMirrored.Filled.Shortcut),
     Contacts("Contacts", Icons.Filled.Person),
+    Events("Events", Icons.Filled.Event),
     Settings("Settings", Icons.Filled.Settings),
 }
 
@@ -76,6 +82,7 @@ private fun SearchResult.category(): SearchCategory? = when (this) {
     is SearchResult.App -> SearchCategory.Apps
     is SearchResult.Shortcut -> SearchCategory.Shortcuts
     is SearchResult.Contact -> SearchCategory.Contacts
+    is SearchResult.Event -> SearchCategory.Events
     is SearchResult.SystemSetting -> SearchCategory.Settings
     else -> null
 }
@@ -256,6 +263,21 @@ private fun ResultRow(result: SearchResult, shape: Shape, actions: SearchResultA
                 }
             },
         )
+        is SearchResult.Event -> SegmentRow(
+            shape = shape,
+            leading = { EventAvatar(result.color) },
+            title = result.title,
+            subtitle = result.dateLine,
+            onClick = {
+                // The begin and end pick the occurrence when the event repeats.
+                val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, result.eventId)
+                actions.openIntent(
+                    Intent(Intent.ACTION_VIEW, uri)
+                        .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, result.begin)
+                        .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, result.end),
+                )
+            },
+        )
         is SearchResult.SystemSetting -> SegmentRow(
             shape = shape,
             leading = { Avatar(Icons.Filled.Settings) },
@@ -351,6 +373,21 @@ private fun InitialAvatar(name: String) {
         } else {
             Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
         }
+    }
+}
+
+/** The calendar's colour behind an event icon; the theme's when the calendar has none. */
+@Composable
+private fun EventAvatar(color: Int?) {
+    if (color == null) return Avatar(Icons.Filled.Event)
+    val background = Color(color).copy(alpha = 1f)
+    Box(Modifier.size(40.dp).background(background, CircleShape), contentAlignment = Alignment.Center) {
+        Icon(
+            Icons.Filled.Event,
+            contentDescription = null,
+            tint = if (background.luminance() > 0.5f) Color.Black else Color.White,
+            modifier = Modifier.size(22.dp),
+        )
     }
 }
 

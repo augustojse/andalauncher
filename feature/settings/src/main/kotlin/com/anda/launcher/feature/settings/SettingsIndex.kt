@@ -106,6 +106,7 @@ internal object SettingsIndex {
         // Search
         IndexEntry("Contacts", Screen.Search, "people search"),
         IndexEntry("Call and message buttons", Screen.Search, "contact phone dial sms text"),
+        IndexEntry("Calendar events", Screen.Search, "agenda appointment meeting"),
         IndexEntry("Calculator", Screen.Search, "math"),
         IndexEntry("Unit converter", Screen.Search, "conversion"),
         IndexEntry("Fuzzy matching", Screen.Search, "typo"),

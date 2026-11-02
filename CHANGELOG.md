@@ -9,6 +9,7 @@ Every update gets a new version here, newest first. The build takes `versionName
 ## 0.6.0 — 2026-10-27
 - New: search finds apps and shortcuts named in other alphabets when you type their Latin spelling, so "telegram" finds Телеграм and "kamera" finds Камера (Settings → Search → Advanced → Other alphabets, on by default). It is ready a few seconds after the launcher starts.
 - New: contact results show the phone number with Call and Message buttons, which open your dialer or messages app (Settings → Search → Call and message buttons).
+- New: search finds calendar events by their title, place or notes, from 30 days ago to a year ahead, with the date and time under each one and an Events filter chip. Tap one to open it in your calendar app (Settings → Search → Calendar events, off by default).
 
 ## 0.5.0 — 2026-10-22
 - New: Icon editor (Settings → Icons, at the top). Change backgrounds (the app's own, a color, a gradient or none), give icons one flat color, adjust hue, saturation, brightness and contrast, resize, move, rotate or mirror the foreground, and add padding, an outline or a shadow, all with a live preview on light, dark or theme backgrounds.

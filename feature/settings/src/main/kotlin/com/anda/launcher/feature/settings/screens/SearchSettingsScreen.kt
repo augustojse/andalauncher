@@ -46,6 +46,10 @@ internal fun SearchSettingsScreen(b: SettingsBinder) {
     val contactsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) contacts.set(true)
     }
+    val calendar = b.bind({ it.search.calendar }) { copy(search = search.copy(calendar = it)) }
+    val calendarPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) calendar.set(true)
+    }
     SettingsGroup("Sources") {
         SwitchRow("Apps", b.bind({ it.search.apps }) { copy(search = search.copy(apps = it)) })
         SwitchRow("App shortcuts", b.bind({ it.search.shortcuts }) { copy(search = search.copy(shortcuts = it)) })
@@ -62,6 +66,19 @@ internal fun SearchSettingsScreen(b: SettingsBinder) {
             "On contact results with a phone number",
             enabled = contacts.value,
         )
+        SwitchRow(
+            "Calendar events",
+            calendar.value,
+            "From 30 days ago to a year ahead",
+            modified = calendar.modified,
+            onReset = calendar::reset,
+        ) { v ->
+            if (v && context.checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
+                calendarPermission.launch(Manifest.permission.READ_CALENDAR)
+            } else {
+                calendar.set(v)
+            }
+        }
         SwitchRow("Calculator", b.bind({ it.search.calculator }) { copy(search = search.copy(calculator = it)) }, "12*7, 15% of 80")
         SwitchRow("Unit converter", b.bind({ it.search.unitConverter }) { copy(search = search.copy(unitConverter = it)) }, "5 km in miles")
         SwitchRow(
@@ -92,7 +109,7 @@ internal fun SearchSettingsScreen(b: SettingsBinder) {
         SwitchRow(
             "Category filters",
             b.bind({ it.search.categoryFilters }) { copy(search = search.copy(categoryFilters = it)) },
-            "Apps, Shortcuts, Contacts and Settings chips above the keyboard",
+            "Apps, Shortcuts, Contacts, Events and Settings chips above the keyboard",
         )
     }
 }

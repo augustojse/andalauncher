@@ -198,6 +198,8 @@ data class SearchSettings(
     val contacts: Boolean = false,
     /** Call and Message buttons on contact results that have a phone number. */
     val contactActions: Boolean = true,
+    /** Calendar events whose title, place or notes match, from 30 days ago to a year ahead. */
+    val calendar: Boolean = false,
     val calculator: Boolean = true,
     val unitConverter: Boolean = true,
     val systemSettings: Boolean = true,
@@ -211,7 +213,7 @@ data class SearchSettings(
     val quickActions: Boolean = true,
     /** Extra "Search <name>" chips, each opening a URL in the browser. */
     val webEngines: List<WebEngine> = emptyList(),
-    /** Apps / Shortcuts / Contacts / Settings chips above the keyboard while searching. */
+    /** Apps / Shortcuts / Contacts / Events / Settings chips above the keyboard while searching. */
     val categoryFilters: Boolean = true,
 )
 

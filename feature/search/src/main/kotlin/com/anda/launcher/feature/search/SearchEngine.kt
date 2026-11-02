@@ -23,7 +23,7 @@ import kotlinx.coroutines.sync.withLock
 data class SearchResults(
     val query: String = "",
     val apps: List<SearchResult.App> = emptyList(),
-    /** Calculator, conversions, actions, shortcuts, contacts, settings, then web; already ranked. */
+    /** Calculator, conversions, actions, shortcuts, contacts, events, settings, then web; already ranked. */
     val others: List<SearchResult> = emptyList(),
 ) {
     val topApp: AppInfo? get() = apps.firstOrNull()?.app
@@ -106,6 +106,7 @@ class SearchEngine(
                 SettingsSearchProvider(),
                 ShortcutSearchProvider(graph),
                 ContactSearchProvider(context),
+                CalendarSearchProvider(context),
                 WebSearchProvider(),
             ),
             onError = { provider, error -> Log.w(TAG, "Search provider ${provider.id} failed", error) },
