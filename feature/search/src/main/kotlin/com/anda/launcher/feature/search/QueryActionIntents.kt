@@ -1,5 +1,6 @@
 package com.anda.launcher.feature.search
 
+import android.app.SearchManager
 import android.content.Intent
 import android.net.Uri
 import android.provider.AlarmClock
@@ -8,11 +9,13 @@ import android.provider.ContactsContract
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.net.toUri
@@ -52,6 +55,7 @@ internal object QueryActionIntents {
                 action.phone?.let { putExtra(ContactsContract.Intents.Insert.PHONE, it) }
                 action.email?.let { putExtra(ContactsContract.Intents.Insert.EMAIL, it) }
             }
+        is QueryAction.Custom -> custom(action)
     }
 
     fun title(action: QueryAction): String = when (action) {
@@ -63,6 +67,7 @@ internal object QueryActionIntents {
         is QueryAction.SetTimer -> "Start a ${QueryClassifier.formatDuration(action.seconds)} timer"
         is QueryAction.AddEvent -> if (action.title.isEmpty()) "New event" else "Add \"${action.title}\" to calendar"
         is QueryAction.SaveContact -> "Save as contact"
+        is QueryAction.Custom -> if (action.custom.isAppSearch) "Search ${action.custom.label}" else action.custom.label
     }
 
     fun subtitle(action: QueryAction): String = when (action) {
@@ -74,6 +79,7 @@ internal object QueryActionIntents {
         is QueryAction.SetTimer -> "Clock"
         is QueryAction.AddEvent -> action.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL))
         is QueryAction.SaveContact -> "Contacts"
+        is QueryAction.Custom -> if (action.custom.isAppSearch) "Search in an app" else "Custom action"
     }
 
     fun icon(action: QueryAction): ImageVector = when (action) {
@@ -85,5 +91,23 @@ internal object QueryActionIntents {
         is QueryAction.SetTimer -> Icons.Filled.Timer
         is QueryAction.AddEvent -> Icons.Filled.Event
         is QueryAction.SaveContact -> Icons.Filled.PersonAdd
+        is QueryAction.Custom -> if (action.custom.isAppSearch) Icons.Filled.Search else Icons.Filled.Bolt
+    }
+
+    /** An app's own search screen, or the user's intent with the query in its data and/or extra. */
+    private fun custom(action: QueryAction.Custom): Intent {
+        val c = action.custom
+        val intentAction = c.intentAction
+            ?: return Intent(Intent.ACTION_SEARCH).setPackage(c.packageName).putExtra(SearchManager.QUERY, action.query)
+        return Intent(intentAction).apply {
+            val data = c.dataFor(action.query)?.toUri()
+            when {
+                data != null && c.mimeType != null -> setDataAndType(data, c.mimeType)
+                data != null -> setData(data)
+                c.mimeType != null -> setType(c.mimeType)
+            }
+            c.extraKey?.let { putExtra(it, action.query) }
+            c.packageName?.let { setPackage(it) }
+        }
     }
 }

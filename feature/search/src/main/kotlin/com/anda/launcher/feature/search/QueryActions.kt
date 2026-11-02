@@ -1,5 +1,7 @@
 package com.anda.launcher.feature.search
 
+import com.anda.launcher.core.model.CustomAction
+import com.anda.launcher.core.model.QuickActionKind
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
@@ -14,7 +16,23 @@ sealed interface QueryAction {
     data class AddEvent(val title: String, val date: LocalDate) : QueryAction
     /** New contact pre-filled with a phone number or an email address. */
     data class SaveContact(val phone: String?, val email: String?) : QueryAction
+    /** One of the user's own actions (app search or custom intent), offered for every query. */
+    data class Custom(val custom: CustomAction, val query: String) : QueryAction
 }
+
+/** The kind its switch and place in Settings → Search → Quick actions are stored under; null for [QueryAction.Custom]. */
+val QueryAction.kind: QuickActionKind?
+    get() = when (this) {
+        is QueryAction.Call -> QuickActionKind.Call
+        is QueryAction.Message -> QuickActionKind.Message
+        is QueryAction.Email -> QuickActionKind.Email
+        is QueryAction.OpenUrl -> QuickActionKind.OpenUrl
+        is QueryAction.SetAlarm -> QuickActionKind.SetAlarm
+        is QueryAction.SetTimer -> QuickActionKind.SetTimer
+        is QueryAction.AddEvent -> QuickActionKind.AddEvent
+        is QueryAction.SaveContact -> QuickActionKind.SaveContact
+        is QueryAction.Custom -> null
+    }
 
 /**
  * Reads a search query as a phone number, email, web address, alarm time, timer duration or

@@ -84,6 +84,10 @@ fun LauncherSettings.sanitized(): LauncherSettings {
                 .filter { it.isValid }
                 .map { it.copy(name = it.name.trim().take(40)) }
                 .take(WebEngine.MAX_ENGINES),
+            customActions = search.customActions
+                .map { it.copy(label = it.label.trim()) }
+                .filter { it.isValid }
+                .take(CustomAction.MAX_ACTIONS),
         ),
         theme = theme.copy(
             cornerRadiusDp = theme.cornerRadiusDp.coerceIn(0, 40),

@@ -211,6 +211,13 @@ data class SearchSettings(
     val launchTopOnEnter: Boolean = true,
     /** Call, text, email, open, alarm, timer and calendar actions read from the query. */
     val quickActions: Boolean = true,
+    /** The user's chip order; kinds it leaves out follow in default order ([QuickActionKind.ordered]). */
+    @Serializable(with = QuickActionKindsSerializer::class)
+    val quickActionOrder: List<QuickActionKind> = emptyList(),
+    @Serializable(with = QuickActionKindsSerializer::class)
+    val disabledQuickActions: List<QuickActionKind> = emptyList(),
+    /** "Search in <app>" and custom intent chips, after the web search ones. */
+    val customActions: List<CustomAction> = emptyList(),
     /** Extra "Search <name>" chips, each opening a URL in the browser. */
     val webEngines: List<WebEngine> = emptyList(),
     /** Apps / Shortcuts / Contacts / Events / Settings chips above the keyboard while searching. */

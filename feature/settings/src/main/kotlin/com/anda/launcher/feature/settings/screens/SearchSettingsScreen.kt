@@ -40,7 +40,7 @@ import com.anda.launcher.feature.settings.components.layout.Hint
 import com.anda.launcher.feature.settings.components.layout.SettingsGroup
 
 @Composable
-internal fun SearchSettingsScreen(b: SettingsBinder) {
+internal fun SearchSettingsScreen(b: SettingsBinder, onQuickActions: () -> Unit) {
     val context = LocalContext.current
     val contacts = b.bind({ it.search.contacts }) { copy(search = search.copy(contacts = it)) }
     val contactsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -81,11 +81,10 @@ internal fun SearchSettingsScreen(b: SettingsBinder) {
         }
         SwitchRow("Calculator", b.bind({ it.search.calculator }) { copy(search = search.copy(calculator = it)) }, "12*7, 15% of 80")
         SwitchRow("Unit converter", b.bind({ it.search.unitConverter }) { copy(search = search.copy(unitConverter = it)) }, "5 km in miles")
-        SwitchRow(
+        NavRow(
             "Quick actions",
-            b.bind({ it.search.quickActions }) { copy(search = search.copy(quickActions = it)) },
-            "Call or text a number, open a web address, \"7:30\" sets an alarm, \"5 min\" a timer, \"dentist oct 31\" an event",
-        )
+            if (b.stored.search.quickActions) "Call, text, alarm, timer and more: choose, reorder, add your own" else "Off",
+        ) { onQuickActions() }
         SwitchRow("Android settings", b.bind({ it.search.systemSettings }) { copy(search = search.copy(systemSettings = it)) })
         SwitchRow("Web search suggestion", b.bind({ it.search.webSearch }) { copy(search = search.copy(webSearch = it)) })
     }

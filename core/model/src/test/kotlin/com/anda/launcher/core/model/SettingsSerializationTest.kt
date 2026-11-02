@@ -32,6 +32,8 @@ class SettingsSerializationTest {
         assertEquals(true, decoded.search.transliterate)
         assertEquals(true, decoded.search.contactActions)
         assertEquals(false, decoded.search.calendar)
+        assertEquals(emptyList<QuickActionKind>(), decoded.search.disabledQuickActions)
+        assertEquals(emptyList<CustomAction>(), decoded.search.customActions)
         assertEquals(DockSettings(), decoded.dock)
     }
 

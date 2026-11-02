@@ -69,6 +69,7 @@ import com.anda.launcher.feature.settings.screens.IconEditorScreen
 import com.anda.launcher.feature.settings.screens.IconSettingsScreen
 import com.anda.launcher.feature.settings.screens.MainScreen
 import com.anda.launcher.feature.settings.screens.PermissionsScreen
+import com.anda.launcher.feature.settings.screens.QuickActionsScreen
 import com.anda.launcher.feature.settings.screens.SearchSettingsScreen
 import com.anda.launcher.feature.settings.screens.ThemeSettingsScreen
 import kotlin.math.roundToInt
@@ -149,7 +150,8 @@ fun SettingsRoot(onExit: () -> Unit, initialScreen: String?, initialIconTarget: 
                         Screen.Icons -> IconSettingsScreen(binder, openIconEditor)
                         Screen.Folders -> FolderSettingsScreen(binder)
                         Screen.Gestures -> GestureSettingsScreen(binder)
-                        Screen.Search -> SearchSettingsScreen(binder)
+                        Screen.Search -> SearchSettingsScreen(binder) { go(Screen.QuickActions, null) }
+                        Screen.QuickActions -> QuickActionsScreen(binder)
                         Screen.Badges -> BadgeSettingsScreen(binder)
                         Screen.Theme -> ThemeSettingsScreen(binder)
                         Screen.Glance -> GlanceSettingsScreen(binder)

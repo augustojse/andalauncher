@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Apps with a search screen, for "Search in an app" (the app also holds QUERY_ALL_PACKAGES as a launcher). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SEARCH" />
+        </intent>
+    </queries>
     <application>
         <activity
             android:name=".SettingsActivity"

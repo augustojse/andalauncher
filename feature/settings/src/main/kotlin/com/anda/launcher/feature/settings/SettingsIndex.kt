@@ -18,10 +18,16 @@ internal enum class Screen(val title: String) {
     Dev("Dev"),
     About("About"),
     IconEditor("Icon editor"),
+    QuickActions("Quick actions"),
     ;
 
     /** Where Back goes; Main when null. */
-    val parent: Screen? get() = if (this == IconEditor) Icons else null
+    val parent: Screen?
+        get() = when (this) {
+            IconEditor -> Icons
+            QuickActions -> Search
+            else -> null
+        }
 }
 
 /** One searchable row. [title] must match the row's on-screen title exactly (it's the highlight key). */
@@ -113,7 +119,9 @@ internal object SettingsIndex {
         IndexEntry("Other alphabets", Screen.Search, "transliterate script cyrillic greek japanese korean arabic latin"),
         IndexEntry("Enter launches top result", Screen.Search, "keyboard"),
         IndexEntry("Web search suggestion", Screen.Search, "google browser"),
-        IndexEntry("Quick actions", Screen.Search, "call text sms email url link alarm timer calendar event"),
+        IndexEntry("Quick actions", Screen.QuickActions, "call text sms email url link alarm timer calendar event order reorder"),
+        IndexEntry("Search in an app", Screen.QuickActions, "app search spotify youtube maps chip"),
+        IndexEntry("Add custom action", Screen.QuickActions, "intent custom chip advanced"),
         IndexEntry("Add search engine", Screen.Search, "web engine kagi duckduckgo wikipedia custom url"),
         IndexEntry("Category filters", Screen.Search, "chips apps contacts shortcuts only filter"),
         // Dots

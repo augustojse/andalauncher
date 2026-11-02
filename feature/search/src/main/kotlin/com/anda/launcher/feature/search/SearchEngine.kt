@@ -23,7 +23,7 @@ import kotlinx.coroutines.sync.withLock
 data class SearchResults(
     val query: String = "",
     val apps: List<SearchResult.App> = emptyList(),
-    /** Calculator, conversions, actions, shortcuts, contacts, events, settings, then web; already ranked. */
+    /** Calculator, conversions, actions, shortcuts, contacts, events, settings, then web and custom actions; already ranked. */
     val others: List<SearchResult> = emptyList(),
 ) {
     val topApp: AppInfo? get() = apps.firstOrNull()?.app
@@ -89,10 +89,14 @@ class SearchEngine(
         // Provider order breaks score ties, so the list doesn't reshuffle as slow providers land.
         val all = active.flatMap { found[it.id].orEmpty() }
         val apps = all.filterIsInstance<SearchResult.App>()
-        val web = all.filterIsInstance<SearchResult.Web>()
-        val ranked = all.filter { it !is SearchResult.App && it !is SearchResult.Web }.sortedByDescending { it.score }
-        send(SearchResults(query, apps, ranked + web))
+        val handOffs = all.filter { it.isHandOff() }
+        val ranked = all.filter { it !is SearchResult.App && !it.isHandOff() }.sortedByDescending { it.score }
+        send(SearchResults(query, apps, ranked + handOffs))
     }
+
+    /** Web searches and the user's own actions hand the query to another app: always last, in provider order. */
+    private fun SearchResult.isHandOff(): Boolean =
+        this is SearchResult.Web || (this is SearchResult.Action && action is QueryAction.Custom)
 
     companion object {
         private const val TAG = "SearchEngine"
@@ -108,6 +112,7 @@ class SearchEngine(
                 ContactSearchProvider(context),
                 CalendarSearchProvider(context),
                 WebSearchProvider(),
+                CustomActionProvider(),
             ),
             onError = { provider, error -> Log.w(TAG, "Search provider ${provider.id} failed", error) },
         )
