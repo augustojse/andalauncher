@@ -6,9 +6,11 @@ import androidx.room.withTransaction
 import com.anda.launcher.core.data.db.AppOverrideEntity
 import com.anda.launcher.core.data.db.DrawerGroupEntity
 import com.anda.launcher.core.data.db.DrawerGroupMemberEntity
+import com.anda.launcher.core.data.db.FavoriteEntity
 import com.anda.launcher.core.data.db.ItemEntity
 import com.anda.launcher.core.data.db.LauncherDatabase
 import com.anda.launcher.core.data.db.ScreenEntity
+import com.anda.launcher.core.model.Favorite
 import com.anda.launcher.core.model.LauncherSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,6 +32,8 @@ data class BackupBundle(
     val overrides: List<AppOverrideEntity>,
     val groups: List<DrawerGroupEntity>,
     val members: List<DrawerGroupMemberEntity>,
+    /** Since 0.6.0. Older backups have none; older versions ignore the field, so the format stays 1. */
+    val favorites: List<FavoriteEntity> = emptyList(),
 ) {
     companion object {
         const val FORMAT_VERSION = 1
@@ -59,6 +63,7 @@ class BackupManager(
                 overrides = db.appOverrideDao().all(),
                 groups = db.drawerGroupDao().groups(),
                 members = db.drawerGroupDao().members(),
+                favorites = db.favoriteDao().all(),
             )
         }
         ZipOutputStream(output.buffered()).use { zip ->
@@ -100,6 +105,7 @@ class BackupManager(
             db.drawerGroupDao().clearGroups()
             db.drawerGroupDao().insertGroups(restored.groups)
             db.drawerGroupDao().insertMembers(restored.members)
+            db.favoriteDao().replaceAll(restored.favorites.sortedBy { it.position }.take(Favorite.MAX_FAVORITES))
         }
         settings.replace(restored.settings)
         // Dev notes merge instead of replace: restoring an old layout must not lose newer notes.

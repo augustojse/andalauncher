@@ -12,6 +12,7 @@ import com.anda.launcher.core.data.BackupManager
 import com.anda.launcher.core.data.CrashReports
 import com.anda.launcher.core.data.DevNotes
 import com.anda.launcher.core.data.DrawerGroupsRepository
+import com.anda.launcher.core.data.FavoritesRepository
 import com.anda.launcher.core.data.LaunchStatsRepository
 import com.anda.launcher.core.data.LayoutRepository
 import com.anda.launcher.core.data.SettingsRepository
@@ -32,6 +33,7 @@ interface LauncherGraph {
     val appLauncher: AppLauncher
     val overridesRepository: AppOverridesRepository
     val drawerGroupsRepository: DrawerGroupsRepository
+    val favoritesRepository: FavoritesRepository
     val launchStatsRepository: LaunchStatsRepository
     val backupManager: BackupManager
     val defaultLayoutProvider: DefaultLayoutProvider

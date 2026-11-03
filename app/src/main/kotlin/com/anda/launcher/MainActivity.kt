@@ -29,6 +29,7 @@ import com.anda.launcher.core.model.AppInfo
 import com.anda.launcher.core.model.AppOverride
 import com.anda.launcher.core.model.ComponentKey
 import com.anda.launcher.core.model.DrawerGroup
+import com.anda.launcher.core.model.Favorite
 import com.anda.launcher.core.model.Gesture
 import com.anda.launcher.core.model.HomeItem
 import com.anda.launcher.core.model.LauncherSettings
@@ -365,6 +366,17 @@ class MainActivity :
     override fun openShortcut(result: SearchResult.Shortcut) {
         graph.appLauncher.launchShortcut(result.packageName, result.shortcutId, result.user)
         drawer.close(animate = false)
+    }
+
+    override fun setPinned(favorite: Favorite, pinned: Boolean) {
+        lifecycleScope.launch {
+            val favorites = graph.favoritesRepository
+            if (!pinned) {
+                favorites.unpin(favorite.key)
+            } else if (!favorites.pin(favorite)) {
+                Toast.makeText(this@MainActivity, "Favorites are full. Remove one to pin another.", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun copyToClipboard(text: String) {

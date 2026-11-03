@@ -8,6 +8,8 @@ import androidx.compose.material.icons.filled.AddToHomeScreen
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Stable
@@ -21,6 +23,7 @@ import androidx.compose.ui.platform.AndroidUiDispatcher
 import com.anda.launcher.core.model.AppCategory
 import com.anda.launcher.core.model.AppInfo
 import com.anda.launcher.core.model.DrawerGroup
+import com.anda.launcher.core.model.Favorite
 import com.anda.launcher.core.model.LauncherSettings
 import com.anda.launcher.core.ui.LauncherGraph
 import com.anda.launcher.core.ui.drag.DragController
@@ -30,6 +33,7 @@ import com.anda.launcher.core.ui.menu.MenuShortcut
 import com.anda.launcher.core.ui.menu.OverlayController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -43,6 +47,9 @@ interface DrawerCallbacks {
 
     /** [screen] deep-links into a settings page. */
     fun openSettings(screen: String?)
+
+    /** Pin to, or remove from, the Favorites row (telling the user when the row is full). */
+    fun setPinned(favorite: Favorite, pinned: Boolean)
 }
 
 sealed interface DrawerTab {
@@ -154,8 +161,15 @@ class DrawerController(
                     }
                 }
             }
+            val favorite = Favorite.App(app.key, app.label)
+            val pinned = graph.favoritesRepository.favorites.first().any { it.key == favorite.key }
             val actions = listOf(
                 MenuAction("Add to home", Icons.Filled.AddToHomeScreen) { callbacks.addToHome(app) },
+                if (pinned) {
+                    MenuAction("Remove from favorites", Icons.Filled.StarBorder) { setPinned(favorite, false) }
+                } else {
+                    MenuAction("Pin to favorites", Icons.Filled.Star) { setPinned(favorite, true) }
+                },
                 MenuAction("App info", Icons.Filled.Info) { graph.appLauncher.openAppInfo(app.key, anchor.toAndroid()) },
                 MenuAction("Edit", Icons.Filled.Edit) { callbacks.editApp(app) },
                 if (app.isHidden) {
@@ -167,6 +181,13 @@ class DrawerController(
             )
             overlay.showMenu(token, ItemMenuState(anchor, shortcuts, actions))
         }
+    }
+
+    fun setPinned(favorite: Favorite, pinned: Boolean) = callbacks.setPinned(favorite, pinned)
+
+    /** Reorders the Favorites row: [favorite] takes the place of its neighbour [target]. */
+    fun moveFavorite(favorite: Favorite, target: Favorite) {
+        scope.launch { graph.favoritesRepository.moveTo(favorite.key, target.key) }
     }
 
     fun setHidden(app: AppInfo, hidden: Boolean) {

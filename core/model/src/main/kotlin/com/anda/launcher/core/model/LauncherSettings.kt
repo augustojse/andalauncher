@@ -133,6 +133,8 @@ data class DrawerSettings(
     /** Smart Launcher one-hand mode puts the search bar at the bottom. */
     val searchBarBottom: Boolean = false,
     val showSuggestions: Boolean = true,
+    /** The row of pinned items at the top of the drawer; it hides itself while nothing is pinned. */
+    val showFavorites: Boolean = true,
     val fastScroller: Boolean = true,
     val manualTabs: Boolean = true,
     /** Smart Launcher automatic categories, shown as extra tabs. */

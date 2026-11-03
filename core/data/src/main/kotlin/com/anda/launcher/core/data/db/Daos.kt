@@ -170,3 +170,25 @@ interface LaunchStatsDao {
     @Upsert
     suspend fun upsert(entity: LaunchStatEntity)
 }
+
+@Dao
+interface FavoriteDao {
+    @Query("SELECT * FROM favorites ORDER BY position")
+    fun observeAll(): Flow<List<FavoriteEntity>>
+
+    @Query("SELECT * FROM favorites ORDER BY position")
+    suspend fun all(): List<FavoriteEntity>
+
+    @Query("DELETE FROM favorites")
+    suspend fun clear()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(favorites: List<FavoriteEntity>)
+
+    /** The whole row at once: pins are few, and positions stay 0..n-1 without gaps. */
+    @Transaction
+    suspend fun replaceAll(favorites: List<FavoriteEntity>) {
+        clear()
+        insertAll(favorites)
+    }
+}

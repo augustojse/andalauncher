@@ -11,6 +11,7 @@ Every update gets a new version here, newest first. The build takes `versionName
 - New: contact results show the phone number with Call and Message buttons, which open your dialer or messages app (Settings → Search → Call and message buttons).
 - New: search finds calendar events by their title, place or notes, from 30 days ago to a year ahead, with the date and time under each one and an Events filter chip. Tap one to open it in your calendar app (Settings → Search → Calendar events, off by default).
 - New: Settings → Search → Quick actions. Turn each action (call, text, email, open, alarm, timer, save contact, calendar) on or off and change their order. Add "Search in an app" chips that open an app's own search with what you typed, or your own custom actions for any app.
+- New: Favorites. Long-press a search result (app, shortcut, contact, event or settings page) or an app in the drawer and choose Pin to favorites. Pinned items show in a row at the top of the drawer; long-press one to move it or remove it. Favorites are included in backups (Settings → App drawer → Favorites row).
 
 ## 0.5.0 — 2026-10-22
 - New: Icon editor (Settings → Icons, at the top). Change backgrounds (the app's own, a color, a gradient or none), give icons one flat color, adjust hue, saturation, brightness and contrast, resize, move, rotate or mirror the foreground, and add padding, an outline or a shadow, all with a live preview on light, dark or theme backgrounds.

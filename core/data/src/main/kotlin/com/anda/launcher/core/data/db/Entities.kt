@@ -91,3 +91,16 @@ data class LaunchStatEntity(
     val launchCount: Int,
     val lastLaunch: Long,
 )
+
+/**
+ * One pinned item (database version 2). [key] is the flattened `ItemKey`; [payload] is the
+ * JSON-encoded `Favorite` with what the drawer needs to show and open it.
+ */
+@Serializable
+@Entity(tableName = "favorites")
+data class FavoriteEntity(
+    @PrimaryKey val key: String,
+    val domain: String,
+    val position: Int,
+    val payload: String,
+)

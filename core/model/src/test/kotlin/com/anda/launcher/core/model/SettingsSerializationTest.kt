@@ -34,6 +34,7 @@ class SettingsSerializationTest {
         assertEquals(false, decoded.search.calendar)
         assertEquals(emptyList<QuickActionKind>(), decoded.search.disabledQuickActions)
         assertEquals(emptyList<CustomAction>(), decoded.search.customActions)
+        assertEquals(true, decoded.drawer.showFavorites)
         assertEquals(DockSettings(), decoded.dock)
     }
 

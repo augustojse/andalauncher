@@ -82,6 +82,7 @@ import com.anda.launcher.core.model.DrawerGroup
 import com.anda.launcher.core.model.DrawerSettings
 import com.anda.launcher.core.model.DrawerSort
 import com.anda.launcher.core.model.DrawerStyle
+import com.anda.launcher.core.model.Favorite
 import com.anda.launcher.core.model.IconStyle
 import com.anda.launcher.core.model.LaunchStat
 import com.anda.launcher.core.model.PackageUserKey
@@ -121,6 +122,7 @@ fun AppDrawer(
     groups: List<DrawerGroup>,
     stats: Map<ComponentKey, LaunchStat>,
     badges: Map<PackageUserKey, Int>,
+    favorites: ImmutableList<Favorite>,
     searchActions: SearchResultActions,
     modifier: Modifier = Modifier,
 ) {
@@ -159,6 +161,9 @@ fun AppDrawer(
         val drawerFolders = if (drawer.showDrawerFolders && controller.tab == DrawerTab.All) groups.filter { it.isFolder } else emptyList()
         val suggestions = remember(apps, stats, drawer.columns) { suggestions(apps, stats, drawer.columns) }
         val hiddenCount = remember(apps) { apps.count { it.isHidden } }
+        // Built while the drawer is closed (it is always composed), so opening it does no work.
+        val shownFavorites = remember(favorites, apps, controller.hiddenUnlocked) { shownFavorites(favorites, apps, controller.hiddenUnlocked) }
+        val pinned = remember(favorites) { favorites.mapTo(HashSet()) { it.key } }
 
         val includeHidden = drawer.hiddenAppsInSearch || controller.hiddenUnlocked
         val latinKeys by controller.graph.latinKeys.keys.collectAsState()
@@ -210,21 +215,29 @@ fun AppDrawer(
                         appRow = { row -> AppRow(row, controller, settings.icons.drawer, badges, drawer.columns) },
                         reverseLayout = drawer.searchBarBottom,
                         showFilters = settings.search.categoryFilters,
+                        pinned = pinned,
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
-                    when (drawer.style) {
-                        DrawerStyle.VerticalGrid -> VerticalGridDrawer(
-                            controller, visible, drawerFolders, if (drawer.showSuggestions && controller.tab == DrawerTab.All) suggestions else emptyList(),
-                            settings.icons.drawer, badges, drawer.columns, drawer.fastScroller && drawer.sort == DrawerSort.Alphabetical,
-                            hiddenCount, apps,
-                        )
-                        DrawerStyle.HorizontalPaged -> PagedDrawer(
-                            controller, visible, drawerFolders, settings.icons.drawer, badges, drawer.columns, drawer.pageRows, hiddenCount, apps,
-                        )
-                        DrawerStyle.List -> ListDrawer(
-                            controller, visible, drawerFolders, badges, drawer.fastScroller && drawer.sort == DrawerSort.Alphabetical, hiddenCount, apps,
-                        )
+                    Column(Modifier.fillMaxSize()) {
+                        if (drawer.showFavorites && controller.tab == DrawerTab.All && shownFavorites.isNotEmpty()) {
+                            FavoritesRow(shownFavorites, controller, searchActions, settings.icons.drawer)
+                        }
+                        Box(Modifier.weight(1f)) {
+                            when (drawer.style) {
+                                DrawerStyle.VerticalGrid -> VerticalGridDrawer(
+                                    controller, visible, drawerFolders, if (drawer.showSuggestions && controller.tab == DrawerTab.All) suggestions else emptyList(),
+                                    settings.icons.drawer, badges, drawer.columns, drawer.fastScroller && drawer.sort == DrawerSort.Alphabetical,
+                                    hiddenCount, apps,
+                                )
+                                DrawerStyle.HorizontalPaged -> PagedDrawer(
+                                    controller, visible, drawerFolders, settings.icons.drawer, badges, drawer.columns, drawer.pageRows, hiddenCount, apps,
+                                )
+                                DrawerStyle.List -> ListDrawer(
+                                    controller, visible, drawerFolders, badges, drawer.fastScroller && drawer.sort == DrawerSort.Alphabetical, hiddenCount, apps,
+                                )
+                            }
+                        }
                     }
                 }
             }

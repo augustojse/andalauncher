@@ -43,6 +43,11 @@ internal fun DrawerSettingsScreen(b: SettingsBinder, openHidden: () -> Unit) {
             SliderRow("Rows per page", b.bind({ it.drawer.pageRows }) { copy(drawer = drawer.copy(pageRows = it)) }, 3..10)
         }
         SwitchRow("Fast scroller", b.bind({ it.drawer.fastScroller }) { copy(drawer = drawer.copy(fastScroller = it)) }, "A–Z strip; shown when sorted A–Z")
+        SwitchRow(
+            "Favorites row",
+            b.bind({ it.drawer.showFavorites }) { copy(drawer = drawer.copy(showFavorites = it)) },
+            "Long-press a search result or app to pin it",
+        )
         SwitchRow("Suggested apps row", b.bind({ it.drawer.showSuggestions }) { copy(drawer = drawer.copy(showSuggestions = it)) })
         SwitchRow("Open keyboard automatically", b.bind({ it.drawer.openKeyboard }) { copy(drawer = drawer.copy(openKeyboard = it)) })
         ColorRow("Background color", b.bind({ it.drawer.backgroundColor }) { copy(drawer = drawer.copy(backgroundColor = it)) })

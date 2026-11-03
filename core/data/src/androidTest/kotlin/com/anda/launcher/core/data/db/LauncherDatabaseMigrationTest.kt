@@ -35,6 +35,25 @@ class LauncherDatabaseMigrationTest {
     }
 
     @Test
+    fun migrate1To2AddsAnEmptyFavoritesTable() {
+        helper.createDatabase(DB, 1).apply {
+            seedVersion1()
+            close()
+        }
+        // Validates the new table against schemas/.../2.json, and that version 1 data is untouched.
+        helper.runMigrationsAndValidate(DB, 2, true, LauncherDatabase.MIGRATION_1_2).use { db ->
+            db.query("SELECT COUNT(*) FROM favorites").use { c ->
+                c.moveToFirst()
+                assertEquals(0, c.getInt(0))
+            }
+            db.query("SELECT COUNT(*) FROM items").use { c ->
+                c.moveToFirst()
+                assertEquals(3, c.getInt(0))
+            }
+        }
+    }
+
+    @Test
     fun migrateAllToLatest() {
         helper.createDatabase(DB, 1).apply {
             seedVersion1()
@@ -53,6 +72,9 @@ class LauncherDatabaseMigrationTest {
             val folder = items.single { it.type == ItemType.FOLDER }
             assertEquals("Games", folder.title)
             assertEquals(2, items.count { it.container == folder.id })
+            // Version 2: pinning works on a migrated database.
+            db.favoriteDao().replaceAll(listOf(FavoriteEntity("setting:wifi", "setting", 0, "{}")))
+            assertEquals(1, db.favoriteDao().all().size)
         }
     }
 

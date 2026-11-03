@@ -73,6 +73,7 @@ internal object SettingsIndex {
         IndexEntry("Drawer folders", Screen.Drawer, "groups"),
         IndexEntry("Rows per page", Screen.Drawer, "paged"),
         IndexEntry("Fast scroller", Screen.Drawer, "alphabet letters index"),
+        IndexEntry("Favorites row", Screen.Drawer, "pin pinned favourite star"),
         IndexEntry("Suggested apps row", Screen.Drawer, "predictions recent frequent"),
         IndexEntry("Open keyboard automatically", Screen.Drawer, "focus search ime"),
         IndexEntry("Blur wallpaper", Screen.Drawer, "drawer blur"),

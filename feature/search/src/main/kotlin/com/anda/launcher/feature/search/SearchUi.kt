@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.CircleShape
+import com.anda.launcher.core.model.Favorite
 import com.anda.launcher.core.model.SearchBarStyle
 
 fun SearchBarStyle.shape(): Shape = when (this) {
@@ -108,4 +109,7 @@ interface SearchResultActions {
     fun openIntent(intent: Intent)
     fun openShortcut(result: SearchResult.Shortcut)
     fun copyToClipboard(text: String)
+
+    /** Pin to, or remove from, the drawer's Favorites row. */
+    fun setPinned(favorite: Favorite, pinned: Boolean)
 }

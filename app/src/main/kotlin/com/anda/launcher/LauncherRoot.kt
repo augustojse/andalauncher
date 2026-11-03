@@ -62,6 +62,7 @@ import com.anda.launcher.feature.home.FolderOverlay
 import com.anda.launcher.feature.home.HomeScreen
 import com.anda.launcher.feature.home.LocalAppLookup
 import com.anda.launcher.feature.home.WidgetPicker
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -88,6 +89,8 @@ fun LauncherRoot(activity: MainActivity, graph: AppGraph) {
     val lookup: (ComponentKey) -> com.anda.launcher.core.model.AppInfo? = remember(appsByKey) { { appsByKey[it] } }
     val groups by graph.drawerGroupsRepository.groups.collectAsState(emptyList())
     val stats by graph.launchStatsRepository.stats.collectAsState(emptyMap())
+    val favoritesList by graph.favoritesRepository.favorites.collectAsState(emptyList())
+    val favorites = remember(favoritesList) { favoritesList.toImmutableList() }
     val badges by BadgeRepository.counts.collectAsState()
     val drawer = activity.drawer
     val backdrop = rememberBackdrop()
@@ -154,6 +157,7 @@ fun LauncherRoot(activity: MainActivity, graph: AppGraph) {
                     groups = groups,
                     stats = stats,
                     badges = badges,
+                    favorites = favorites,
                     searchActions = activity,
                 )
                 FolderOverlay(home, badges, activity)

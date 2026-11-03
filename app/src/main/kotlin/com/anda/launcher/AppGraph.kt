@@ -19,6 +19,7 @@ import com.anda.launcher.core.data.BackupManager
 import com.anda.launcher.core.data.CrashReports
 import com.anda.launcher.core.data.DevNotes
 import com.anda.launcher.core.data.DrawerGroupsRepository
+import com.anda.launcher.core.data.FavoritesRepository
 import com.anda.launcher.core.data.LaunchStatsRepository
 import com.anda.launcher.core.data.LayoutRepository
 import com.anda.launcher.core.data.SettingsRepository
@@ -68,6 +69,7 @@ class AppGraph(private val app: Application) : LauncherGraph {
     override val iconRepository by lazy { IconRepository(app, appsRepository, shortcutRepository) }
     override val launchStatsRepository by lazy { LaunchStatsRepository(database) }
     override val drawerGroupsRepository by lazy { DrawerGroupsRepository(database) }
+    override val favoritesRepository by lazy { FavoritesRepository(database) }
     override val devNotes by lazy { DevNotes(app) }
     override val backupManager by lazy { BackupManager(app, database, settingsRepository, devNotes) }
     override val defaultLayoutProvider by lazy { DefaultLayoutProvider(app, users) }
@@ -128,8 +130,10 @@ class AppGraph(private val app: Application) : LauncherGraph {
 
     private suspend fun onPackageEvent(event: PackageEvent) {
         when (event) {
-            is PackageEvent.Removed ->
+            is PackageEvent.Removed -> {
                 layoutRepository.removePackage(event.packageName, event.user).forEach(widgetHost::deleteId)
+                favoritesRepository.removePackage(event.packageName, event.user)
+            }
             is PackageEvent.Added -> {
                 val settings = settings()
                 val first = event.activities.firstOrNull() ?: return

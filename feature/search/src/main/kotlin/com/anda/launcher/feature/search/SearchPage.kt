@@ -5,7 +5,9 @@ import android.content.Intent
 import android.provider.CalendarContract
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,10 +40,13 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -65,7 +70,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.anda.launcher.core.model.AppInfo
+import com.anda.launcher.core.model.Favorite
+import com.anda.launcher.core.model.ItemKey
 import com.anda.launcher.core.ui.TestTags
 import com.anda.launcher.core.ui.icon.rememberShortcutIcon
 
@@ -114,6 +122,8 @@ fun SearchResultsList(
     modifier: Modifier = Modifier,
     reverseLayout: Boolean = false,
     showFilters: Boolean = true,
+    /** What is in the Favorites row, so a long-press offers Unpin instead of Pin. */
+    pinned: Set<ItemKey> = emptySet(),
 ) {
     var filter by remember { mutableStateOf<SearchCategory?>(null) }
     var expanded by remember(results.query) { mutableStateOf(emptySet<SearchCategory>()) }
@@ -163,7 +173,7 @@ fun SearchResultsList(
                 val shown = if (collapsed) items.take(COLLAPSED_ROWS) else items
                 // "Show more" is the stack's last segment, so the rows above it keep inner corners.
                 val segments = shown.size + if (collapsed) 1 else 0
-                listGroup(category, shown, segments, reverseLayout, actions)
+                listGroup(category, shown, segments, reverseLayout, pinned, actions)
                 if (collapsed) {
                     item(key = "${category.name}-more") {
                         ShowMoreRow(items.size - COLLAPSED_ROWS, segmentShape(shown.size, segments, reverseLayout)) {
@@ -223,18 +233,44 @@ private fun LazyListScope.listGroup(
     items: List<SearchResult>,
     segments: Int,
     reverse: Boolean,
+    pinned: Set<ItemKey>,
     actions: SearchResultActions,
 ) {
     items(items.size, key = { "${category.name}$it-${items[it].hashCode()}" }) { index ->
-        ResultRow(items[index], segmentShape(index, segments, reverse), actions)
+        ResultRow(items[index], segmentShape(index, segments, reverse), pinned, actions)
+    }
+}
+
+/** One result; a long-press pins it to (or removes it from) the drawer's Favorites row. */
+@Composable
+private fun ResultRow(result: SearchResult, shape: Shape, pinned: Set<ItemKey>, actions: SearchResultActions) {
+    val favorite = remember(result) { result.toFavorite() }
+    var menu by remember { mutableStateOf(false) }
+    val onLongClick: (() -> Unit)? = favorite?.let { { menu = true } }
+    Box {
+        ResultContent(result, shape, actions, onLongClick)
+        if (favorite != null) {
+            val isPinned = favorite.key in pinned
+            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                DropdownMenuItem(
+                    text = { Text(if (isPinned) "Remove from favorites" else "Pin to favorites") },
+                    leadingIcon = { Icon(if (isPinned) Icons.Filled.StarBorder else Icons.Filled.Star, contentDescription = null) },
+                    onClick = {
+                        menu = false
+                        actions.setPinned(favorite, !isPinned)
+                    },
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun ResultRow(result: SearchResult, shape: Shape, actions: SearchResultActions) {
+private fun ResultContent(result: SearchResult, shape: Shape, actions: SearchResultActions, onLongClick: (() -> Unit)?) {
     when (result) {
         is SearchResult.Shortcut -> SegmentRow(
             shape = shape,
+            onLongClick = onLongClick,
             leading = {
                 val icon = rememberShortcutIcon(result.packageName, result.shortcutId, result.user)
                 if (icon != null) Image(icon, null, Modifier.size(36.dp)) else Avatar(Icons.AutoMirrored.Filled.ArrowForward)
@@ -245,6 +281,7 @@ private fun ResultRow(result: SearchResult, shape: Shape, actions: SearchResultA
         )
         is SearchResult.Contact -> SegmentRow(
             shape = shape,
+            onLongClick = onLongClick,
             leading = { InitialAvatar(result.name) },
             title = result.name,
             subtitle = result.phone ?: "Contact",
@@ -265,21 +302,15 @@ private fun ResultRow(result: SearchResult, shape: Shape, actions: SearchResultA
         )
         is SearchResult.Event -> SegmentRow(
             shape = shape,
+            onLongClick = onLongClick,
             leading = { EventAvatar(result.color) },
             title = result.title,
             subtitle = result.dateLine,
-            onClick = {
-                // The begin and end pick the occurrence when the event repeats.
-                val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, result.eventId)
-                actions.openIntent(
-                    Intent(Intent.ACTION_VIEW, uri)
-                        .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, result.begin)
-                        .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, result.end),
-                )
-            },
+            onClick = { actions.openIntent(eventIntent(result.eventId, result.begin, result.end)) },
         )
         is SearchResult.SystemSetting -> SegmentRow(
             shape = shape,
+            onLongClick = onLongClick,
             leading = { Avatar(Icons.Filled.Settings) },
             title = result.title,
             subtitle = "Android settings",
@@ -289,6 +320,7 @@ private fun ResultRow(result: SearchResult, shape: Shape, actions: SearchResultA
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SegmentRow(
     shape: Shape,
@@ -296,6 +328,7 @@ private fun SegmentRow(
     title: String,
     subtitle: String?,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Surface(
@@ -304,7 +337,8 @@ private fun SegmentRow(
         modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
     ) {
         Row(
-            Modifier.clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
+            Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick, onLongClickLabel = onLongClick?.let { "Favorite options" })
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -352,19 +386,19 @@ private fun ShowMoreRow(hidden: Int, shape: Shape, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Avatar(icon: ImageVector) {
+private fun Avatar(icon: ImageVector, size: Dp = 40.dp) {
     Box(
-        Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+        Modifier.size(size).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(size * 0.55f))
     }
 }
 
 @Composable
-private fun InitialAvatar(name: String) {
+private fun InitialAvatar(name: String, size: Dp = 40.dp) {
     Box(
-        Modifier.size(40.dp).background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
+        Modifier.size(size).background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         val initial = name.firstOrNull { it.isLetterOrDigit() }?.uppercaseChar()
@@ -378,18 +412,50 @@ private fun InitialAvatar(name: String) {
 
 /** The calendar's colour behind an event icon; the theme's when the calendar has none. */
 @Composable
-private fun EventAvatar(color: Int?) {
-    if (color == null) return Avatar(Icons.Filled.Event)
+private fun EventAvatar(color: Int?, size: Dp = 40.dp) {
+    if (color == null) return Avatar(Icons.Filled.Event, size)
     val background = Color(color).copy(alpha = 1f)
-    Box(Modifier.size(40.dp).background(background, CircleShape), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(size).background(background, CircleShape), contentAlignment = Alignment.Center) {
         Icon(
             Icons.Filled.Event,
             contentDescription = null,
             tint = if (background.luminance() > 0.5f) Color.Black else Color.White,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(size * 0.55f),
         )
     }
 }
+
+/**
+ * The icon of a pinned shortcut, contact, event or settings page, the same as its search row's.
+ * Apps are drawn by the caller with their themed launcher icon.
+ */
+@Composable
+fun FavoriteIcon(favorite: Favorite, size: Dp) {
+    when (favorite) {
+        is Favorite.Shortcut -> {
+            val icon = rememberShortcutIcon(favorite.packageName, favorite.shortcutId, favorite.user)
+            if (icon != null) Image(icon, null, Modifier.size(size)) else Avatar(Icons.AutoMirrored.Filled.ArrowForward, size)
+        }
+        is Favorite.Contact -> InitialAvatar(favorite.label, size)
+        is Favorite.Event -> EventAvatar(favorite.color, size)
+        is Favorite.Setting -> Avatar(Icons.Filled.Settings, size)
+        is Favorite.App -> Unit
+    }
+}
+
+/** How a pinned contact, event or settings page opens; apps and shortcuts launch through their own paths. */
+fun Favorite.intent(): Intent? = when (this) {
+    is Favorite.Contact -> Intent(Intent.ACTION_VIEW, lookupUri.toUri())
+    is Favorite.Event -> eventIntent(eventId, begin, end)
+    is Favorite.Setting -> Intent(action)
+    is Favorite.App, is Favorite.Shortcut -> null
+}
+
+/** The begin and end pick the occurrence when the event repeats. */
+private fun eventIntent(eventId: Long, begin: Long, end: Long): Intent =
+    Intent(Intent.ACTION_VIEW, ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId))
+        .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, begin)
+        .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, end)
 
 // ---- Featured: calculator and unit converter -----------------------------------------------------
 

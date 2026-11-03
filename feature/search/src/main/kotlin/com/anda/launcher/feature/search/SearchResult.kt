@@ -2,6 +2,7 @@ package com.anda.launcher.feature.search
 
 import android.net.Uri
 import com.anda.launcher.core.model.AppInfo
+import com.anda.launcher.core.model.Favorite
 import com.anda.launcher.core.model.WebEngine
 
 sealed interface SearchResult {
@@ -46,4 +47,14 @@ sealed interface SearchResult {
 
     /** Hand the query to a search app ([engine] null) or to a user-defined web engine. */
     data class Web(val query: String, val engine: WebEngine? = null, override val score: Int = 0) : SearchResult
+}
+
+/** What pinning this result stores; null for kinds that can't be pinned (actions, web, answers). */
+fun SearchResult.toFavorite(): Favorite? = when (this) {
+    is SearchResult.App -> Favorite.App(app.key, app.label)
+    is SearchResult.Shortcut -> Favorite.Shortcut(packageName, shortcutId, user, label, appLabel)
+    is SearchResult.Contact -> Favorite.Contact(name, lookupUri.toString(), photoUri?.toString(), phone)
+    is SearchResult.Event -> Favorite.Event(eventId, title, begin, end, allDay, color)
+    is SearchResult.SystemSetting -> Favorite.Setting(title, action)
+    else -> null
 }
