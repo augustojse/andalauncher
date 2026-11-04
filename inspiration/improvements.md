@@ -100,19 +100,6 @@ The ten ideas with the best value for the effort:
 
 ---
 
-## Where the ideas fit the release plan
-
-| Release-plan phase | Ideas that belong there |
-|---|---|
-| Phase 3.1 design tokens | C8, C9 |
-| Phase 3.3 complete colour scheme | A7, C1 |
-| Phase 3.5 motion on every overlay | C3, C4 |
-| Phase 3.6 unify components | A4 |
-| Phase 3.7 first impression | C2 |
-| Before Play (Phase 7) | B21, A9, A11 |
-
----
-
 ## D. Workflow skills
 
 Project tooling, not launcher features: Claude skills in `.claude/skills/` for jobs the project keeps repeating. Each row names
@@ -127,6 +114,19 @@ the evidence from earlier sessions. The six skills that exist today are `anda-fe
 | S4 | **`anda-benchmark-pixel`** | RND.md budgets are measured on the Pixel; the 0.6.0 gate asks for a macrobenchmark because the drawer changed, and none has run since favorites | Run `:baselineprofile:connectedBenchmarkReleaseAndroidTest` on the phone through `anda-phone-install`'s connection, and compare cold start, drawer open p95 and idle PSS with the budgets. | M | P2 |
 | S5 | **`anda-backlog-sync`** | B22 to B27 still read "Planned for 0.6.0" in this file after they shipped; the check marks are set by hand | When a CHANGELOG entry ships, tick the matching ideas here with the version, update the plan's "After" table, and keep research notes and plans in step. | S | P2 |
 | S6 | **`anda-dev-notes-triage`** | Settings → Dev and `tools/dev/pull-dev-notes.ps1` exist for exactly this; no session has used them yet | Pull the notes from the phone, read each note and screenshot, reproduce on the emulator, and turn confirmed ones into fixes. Build it after the first real notes arrive. | S | P3 |
+
+---
+
+## Where the ideas fit the release plan
+
+| Release-plan phase | Ideas that belong there |
+|---|---|
+| Phase 3.1 design tokens | C8, C9 |
+| Phase 3.3 complete colour scheme | A7, C1 |
+| Phase 3.5 motion on every overlay | C3, C4 |
+| Phase 3.6 unify components | A4 |
+| Phase 3.7 first impression | C2 |
+| Before Play (Phase 7) | B21, A9, A11 |
 | Research spikes (`docs/research/NNN-*.md`) | B1, B3, C7, B17, B19 (skill: S1) |
 | Before Play (Phase 7), tooling | S2, S4 |
 | Daily upkeep, tooling | S3, S5, S6 |
