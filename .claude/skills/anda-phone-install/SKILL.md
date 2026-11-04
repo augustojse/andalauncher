@@ -7,6 +7,12 @@ description: Install the latest Anda Launcher build on the user's physical Pixel
 
 The phone is the only place the real feel (speed, wallpaper, notifications) can be judged, so the user installs there often. Wireless debugging drops and un-pairs regularly, which is why a script exists; use it instead of improvising adb commands.
 
+## Before you run it
+
+The script restarts the adb server when the phone is not found (second reconnect attempt). That cuts the adb connection of any QA run using the emulator. Check first that no `run-qa.ps1` or `nightly-push.ps1` is running (the pre-flight query in `anda-build-verify`, section 2) and wait if one is. The nightly starts around 23:09 and the deep run around 06:00.
+
+Then run `adb devices` (one second). If no non-emulator device is listed, the script will spend about **five minutes** on discovery attempts and an adb restart before it fails with "Phone not reachable" (measured 2026-11-04). Unless the user has just said the phone is reconnected, do not start it: ask them to unlock the phone and switch Wireless debugging on, then run it. A listed `offline` entry is also not ready.
+
 ## Run
 
 ```powershell
@@ -31,6 +37,8 @@ Report the installed `versionName` and `lastUpdateTime` the script prints, and s
 
 - Target the phone by serial. Do not run bare `gradlew installDebug` or an adb command without `-s`: the emulator may also be attached.
 - No `adb uninstall`, `pm clear`, or data wipes on the phone unless the user asks.
+- **One phone can show up twice** in `adb devices`: once as `<ip>:<port>` and once as `adb-<serial>._adb-tls-connect._tcp`. `install-to-phone.ps1` takes the first ready entry and is fine. `nightly-push.ps1` counts both as phones, stops with "More than one phone" and pushes nothing. If the nightly's `qa-reports/nightly/latest.md` says that, the fix is on the user's side (`adb disconnect <ip>:<port>` leaves the mDNS entry), or the nightly needs `-Serial`; say so rather than editing `tools/release/`.
+- **Success looks like** `Success`, then `versionName=<x.y.z>` and `lastUpdateTime=<now>`, then `OK: latest build is installed and verified on <serial>` (about 25 seconds when the build is up to date). The `monkey` launcher prints its arguments to stderr, which PowerShell shows as a red `NativeCommandError`; with `exit code: 0` that is noise.
 - The 11 pm `tools/release/nightly-push.ps1` installs the **release** build with `adb install -r` after QA smoke passes. A debug install and the nightly build can differ in signature or version, so if the user reports the phone "changed overnight", look at `qa-reports/nightly/latest.md`.
 - To read what the user wrote in Settings → Dev (notes and screenshots), `tools/dev/pull-dev-notes.ps1` pulls them from the phone into `dev-notes/`.
 

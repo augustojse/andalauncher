@@ -34,7 +34,9 @@ Get-CimInstance Win32_Process | Where-Object {
 
 No output means nobody is building. (A `GradleDaemon` java process alone does not count: idle daemons stay alive after every build. Matching on the wrapper client and the QA scripts avoids that false alarm, and `$PID` keeps the query from matching itself.)
 
-Read `CreationDate` before waiting. A QA run takes at most about 60 minutes and a build a few, so an entry days old with no child processes (`Get-CimInstance Win32_Process | Where-Object ParentProcessId -eq <pid>`) is a stale leftover, not a live build. Do not kill it, because it is not yours: tell the user its PID and age and carry on. If an entry is young or has children, wait for it. If you get a lock error anyway, wait 5-10 minutes and retry once. For a long wait, build in a separate worktree: `git worktree add ../c1-launcher-ux <branch>`, copy `local.properties` into it, and pass `--max-workers=2`. Retrying for any other kind of failure only hides the bug.
+Read `CreationDate` before waiting. A QA run takes at most about 60 minutes and a build a few, so an entry days old with no child processes (`Get-CimInstance Win32_Process | Where-Object ParentProcessId -eq <pid>`) is a stale leftover, not a live build. Do not kill it, because it is not yours: tell the user its PID and age and carry on. If an entry is young or has children, wait for it.
+
+**Scheduled runs build this same working tree.** `nightly-push.ps1` starts around 23:09 and `run-qa.ps1 -Tier deep` around 06:00; each compiles whatever is on disk and holds the emulator, and its health gate fails if the machine is busy. While one runs, do not edit source files or `CHANGELOG.md`, do not start your own Gradle build (not even in a second worktree: the extra load fails the run), and do not touch adb. A half-written file can fail the run, and a new CHANGELOG heading can trip the nightly's version check. Docs, plans and skill files are safe to edit. Check the clock with `Get-Date` before starting a build late in the evening or early in the morning, start a background waiter on the run's process id so you are notified when it exits, and carry on with docs-only work meanwhile. These runs also leave an untracked `qa-nightly-run.log` in the repo root: it is not yours, so leave it out of your commits. If you get a lock error anyway, wait 5-10 minutes and retry once. If the wait is for another *session's* build and is long, a separate worktree works: `git worktree add ../c1-launcher-ux <new-branch>`, copy `local.properties` into it, and pass `--max-workers=2`. That does not apply to the scheduled runs described next. Retrying for any other kind of failure only hides the bug.
 
 ## 3. Pick the gate (cheapest first)
 
@@ -53,6 +55,17 @@ Add the gates that match the change:
 - **Room entity or version change:** the schema JSON must exist in `core/data/schemas/` and the migration test (`LauncherDatabaseMigrationTest`, androidTest) must cover it.
 - **CHANGELOG touched:** `ChangelogTest` enforces strictly increasing versions and non-empty notes.
 
-## 4. Report what you actually verified
+## 4. Confirm the tests really ran
+
+With `-q` a passing `gradlew check` prints nothing, so an exit code of 0 and an empty log say little on their own. Check the result files for the tests the change depends on:
+
+```bash
+find . -path ./inspiration -prune -o -name "TEST-*.<TestClass>.xml" -mmin -30 -print
+grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' <that file>
+```
+
+A file older than your run means the test did not run. Look for the new test class, plus the guard tests the change relies on (`SettingsSerializationTest`, `SettingsIndexTest`, `ChangelogTest`). `bc` is not installed in Git Bash; use PowerShell or `node` for sums.
+
+## 5. Report what you actually verified
 
 State each gate as passed, failed, or not run, with the reason. "Migration test compiles but was not run on a device" is a useful sentence; "tests pass" when only `check` ran is not. The user has been burned by the gap between the two: JVM tests do not prove the launcher works on a device.

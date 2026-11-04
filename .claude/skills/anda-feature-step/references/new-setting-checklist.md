@@ -21,7 +21,7 @@ Traced from the 0.6.0 commits: `657e8c8` (contact actions), `8484d81` (calendar 
 Do A, plus:
 - `screens/<Name>Screen.kt`, one file per screen.
 - A new entry in the `Screen` enum in `SettingsIndex.kt`. A sub-screen also gets a `parent` there, so Back returns to the page it was opened from (`QuickActions -> Search`).
-- A branch for it in the `when (screen)` in `SettingsRoot.kt`, and a row or button on the parent screen that calls `go(Screen.<Name>, null)`.
+- A branch for it in the `when (screen)` in `SettingsRoot.kt`, and a row or button on the parent screen that calls `go(Screen.<Name>, null)`. The parent screen gets a new callback parameter for it (`SearchSettingsScreen(b, onQuickActions, onShortcutApps)`), and `SettingsRoot.kt` passes it by name. Use a `NavRow(title, summary) { ... }` for the link; it has no disabled state.
 - Index entries pointing at the new screen. All screens live in the single `SettingsActivity`; no new Activity is needed.
 - The manifest changes only for package visibility: to list other apps (as "Search in an app" did) add a `<queries>` entry in `feature/settings/src/main/AndroidManifest.xml`.
 
@@ -38,6 +38,15 @@ Do A, plus:
 - Provider in `feature/search/` implementing the provider interface, registered in `SearchEngine.kt`; `slow = true` on IO unless it is the app list.
 - `SearchResult.kt` gets the new type; `SearchPage.kt` renders it; add a filter chip if it is its own category.
 - If results can be pinned, add the type to the favorites key (`ItemKey(domain, id)`) in `core/model/.../Favorites.kt`.
+
+## D2. A new action on a search result (a long-press menu item)
+
+Found while building B26 (hide shortcuts per app); none of this was in the checklist before.
+- The action is a method on `SearchResultActions` in `feature/search/.../SearchUi.kt`.
+- `app/.../MainActivity.kt` is its only implementer and is where it touches settings or repositories (`graph.settingsRepository.update { ... }` inside `lifecycleScope.launch`). A new method breaks the build there until it is implemented.
+- The menu itself is `ResultRow` in `feature/search/.../SearchPage.kt`; each item is a `DropdownMenuItem`, shown for the result kinds that have a menu (those where `toFavorite()` is not null).
+- Any icon it needs comes from `androidx.compose.material.icons` (the extended set is already available to the search module).
+- Put rules that both this menu and a settings screen need (trim, de-duplicate, cap) as member functions on the settings class in `core/model`, so one unit test covers them and the two places cannot drift apart.
 
 ## E. Before you call it done
 
