@@ -110,7 +110,26 @@ The ten ideas with the best value for the effort:
 | Phase 3.6 unify components | A4 |
 | Phase 3.7 first impression | C2 |
 | Before Play (Phase 7) | B21, A9, A11 |
-| Research spikes (`docs/research/NNN-*.md`) | B1, B3, C7, B17, B19 |
+
+---
+
+## D. Workflow skills
+
+Project tooling, not launcher features: Claude skills in `.claude/skills/` for jobs the project keeps repeating. Each row names
+the evidence from earlier sessions. The six skills that exist today are `anda-feature-step`, `anda-build-verify`,
+`anda-commit-scoped`, `anda-emulator-check`, `anda-phone-install`, `anda-plan-release` (plus the weekly `anda-ux-round`).
+
+| ID | Skill | Evidence | What it would do | Effort | Priority |
+|---|---|---|---|---|---|
+| S1 | **`anda-research-spike`** | RND.md §1.3; the 0.6.0 plan queues spikes B1 and B3; research 001 and 003 were written by hand | Run a half-day spike and write `docs/research/NNN-*.md` with question, findings, decision and fallback. Pick the next free number (002, 004 and 005 are reserved). Start with a measurement and a go/no-go number, as the 0.6.0 transliteration step did. | S | P1 |
+| S2 | **`anda-release-cut`** | Release plan Phase 7 (Play and a direct APK); `nightly-push.ps1` already builds `assembleRelease` | Check the CHANGELOG heading and date, run `lint assembleRelease`, check the APK size budget, run the upgrade test (previous version, then the new one over it), and walk the signing checklist (keystore outside the project, never committed). | M | P1 |
+| S3 | **`anda-qa-triage`** | Daily and nightly scheduled tasks; two sessions asked "Check nightly-push result and report" three times; on 2026-11-03 the nightly sat 44 minutes (and the night before about 19 hours) on a hung 24-hour-old emulator | Read `qa-reports/` (`latest-*.md`, `nightly/latest.md`, `history.csv`), classify a failure as app, test or emulator artifact, and report in five lines. Also flag a stale `nightly-push` process and unignored logs like `qa-nightly-run.log`. Recognise a stuck run: a QA process with no children, or an `adb ... getprop sys.boot_completed` call that is minutes old, means a hung emulator; the fix is `anda-emulator-check`'s kill recipe, done only with the user's OK. | S | P1 |
+| S4 | **`anda-benchmark-pixel`** | RND.md budgets are measured on the Pixel; the 0.6.0 gate asks for a macrobenchmark because the drawer changed, and none has run since favorites | Run `:baselineprofile:connectedBenchmarkReleaseAndroidTest` on the phone through `anda-phone-install`'s connection, and compare cold start, drawer open p95 and idle PSS with the budgets. | M | P2 |
+| S5 | **`anda-backlog-sync`** | B22 to B27 still read "Planned for 0.6.0" in this file after they shipped; the check marks are set by hand | When a CHANGELOG entry ships, tick the matching ideas here with the version, update the plan's "After" table, and keep research notes and plans in step. | S | P2 |
+| S6 | **`anda-dev-notes-triage`** | Settings → Dev and `tools/dev/pull-dev-notes.ps1` exist for exactly this; no session has used them yet | Pull the notes from the phone, read each note and screenshot, reproduce on the emulator, and turn confirmed ones into fixes. Build it after the first real notes arrive. | S | P3 |
+| Research spikes (`docs/research/NNN-*.md`) | B1, B3, C7, B17, B19 (skill: S1) |
+| Before Play (Phase 7), tooling | S2, S4 |
+| Daily upkeep, tooling | S3, S5, S6 |
 
 ## Not taking
 
