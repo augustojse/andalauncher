@@ -379,6 +379,12 @@ class MainActivity :
         }
     }
 
+    override fun hideShortcutsOf(packageName: String) {
+        lifecycleScope.launch {
+            graph.settingsRepository.update { it.copy(search = it.search.withShortcutsHidden(packageName)) }
+        }
+    }
+
     override fun copyToClipboard(text: String) {
         getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Anda", text))
         Toast.makeText(this, "Copied $text", Toast.LENGTH_SHORT).show()

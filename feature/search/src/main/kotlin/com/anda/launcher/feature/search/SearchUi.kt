@@ -112,4 +112,7 @@ interface SearchResultActions {
 
     /** Pin to, or remove from, the drawer's Favorites row. */
     fun setPinned(favorite: Favorite, pinned: Boolean)
+
+    /** Leave [packageName]'s app shortcuts out of search (Settings → Search → Hidden shortcut apps undoes it). */
+    fun hideShortcutsOf(packageName: String)
 }

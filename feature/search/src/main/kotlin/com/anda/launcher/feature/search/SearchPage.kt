@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.DropdownMenu
@@ -260,6 +261,16 @@ private fun ResultRow(result: SearchResult, shape: Shape, pinned: Set<ItemKey>, 
                         actions.setPinned(favorite, !isPinned)
                     },
                 )
+                if (result is SearchResult.Shortcut) {
+                    DropdownMenuItem(
+                        text = { Text("Hide shortcuts from ${result.appLabel.ifBlank { "this app" }}") },
+                        leadingIcon = { Icon(Icons.Filled.VisibilityOff, contentDescription = null) },
+                        onClick = {
+                            menu = false
+                            actions.hideShortcutsOf(result.packageName)
+                        },
+                    )
+                }
             }
         }
     }

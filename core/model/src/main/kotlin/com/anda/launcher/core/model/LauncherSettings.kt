@@ -197,6 +197,8 @@ data class GestureSettings(
 data class SearchSettings(
     val apps: Boolean = true,
     val shortcuts: Boolean = true,
+    /** Packages whose app shortcuts never show in search; added from a shortcut result's menu. */
+    val excludedShortcutApps: List<String> = emptyList(),
     val contacts: Boolean = false,
     /** Call and Message buttons on contact results that have a phone number. */
     val contactActions: Boolean = true,
@@ -224,7 +226,21 @@ data class SearchSettings(
     val webEngines: List<WebEngine> = emptyList(),
     /** Apps / Shortcuts / Contacts / Events / Settings chips above the keyboard while searching. */
     val categoryFilters: Boolean = true,
-)
+) {
+    /** Hides [packageName]'s shortcuts. A blank name or one already hidden changes nothing, and the list stops at [MAX_EXCLUDED_SHORTCUT_APPS]. */
+    fun withShortcutsHidden(packageName: String): SearchSettings {
+        val name = packageName.trim()
+        if (name.isEmpty() || name in excludedShortcutApps || excludedShortcutApps.size >= MAX_EXCLUDED_SHORTCUT_APPS) return this
+        return copy(excludedShortcutApps = excludedShortcutApps + name)
+    }
+
+    /** Brings [packageName]'s shortcuts back into search. */
+    fun withShortcutsShown(packageName: String): SearchSettings = copy(excludedShortcutApps = excludedShortcutApps - packageName)
+
+    companion object {
+        const val MAX_EXCLUDED_SHORTCUT_APPS = 200
+    }
+}
 
 /** A user-defined web search; `%s` in [urlTemplate] is replaced by the encoded query. */
 @Serializable

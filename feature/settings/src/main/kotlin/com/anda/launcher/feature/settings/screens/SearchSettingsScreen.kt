@@ -40,7 +40,7 @@ import com.anda.launcher.feature.settings.components.layout.Hint
 import com.anda.launcher.feature.settings.components.layout.SettingsGroup
 
 @Composable
-internal fun SearchSettingsScreen(b: SettingsBinder, onQuickActions: () -> Unit) {
+internal fun SearchSettingsScreen(b: SettingsBinder, onQuickActions: () -> Unit, onShortcutApps: () -> Unit) {
     val context = LocalContext.current
     val contacts = b.bind({ it.search.contacts }) { copy(search = search.copy(contacts = it)) }
     val contactsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -53,6 +53,16 @@ internal fun SearchSettingsScreen(b: SettingsBinder, onQuickActions: () -> Unit)
     SettingsGroup("Sources") {
         SwitchRow("Apps", b.bind({ it.search.apps }) { copy(search = search.copy(apps = it)) })
         SwitchRow("App shortcuts", b.bind({ it.search.shortcuts }) { copy(search = search.copy(shortcuts = it)) })
+        val hiddenShortcutApps = b.stored.search.excludedShortcutApps.size
+        NavRow(
+            "Hidden shortcut apps",
+            summary = when (hiddenShortcutApps) {
+                0 -> "None. Long-press a shortcut in the results to hide an app's shortcuts."
+                1 -> "1 app"
+                else -> "$hiddenShortcutApps apps"
+            },
+            onClick = onShortcutApps,
+        )
         SwitchRow("Contacts", contacts.value, modified = contacts.modified, onReset = contacts::reset) { v ->
             if (v && context.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
                 contactsPermission.launch(Manifest.permission.READ_CONTACTS)

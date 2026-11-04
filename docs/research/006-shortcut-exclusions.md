@@ -28,14 +28,15 @@ the shortcut set changes. A package filter applied *after* the cache costs one s
 
 - Long-press a shortcut result: the existing menu gains **Hide shortcuts from <app name>** below **Pin to favorites**. Choosing it removes that app's shortcuts from the current results at once.
 - **Settings → Search → Hidden shortcut apps** opens a screen listing the hidden apps (icon, name) with **Show again** on each row. An empty list shows a short hint explaining how to hide one.
-- The row in Search settings shows the count ("2 apps") and is greyed out while **App shortcuts** is off.
+- The row in Search settings shows the count ("2 apps"). It stays tappable while **App shortcuts** is off, so the list can still be managed (`NavRow` has no disabled state).
 - A pinned shortcut (favorites) is not affected: favorites live in the drawer row, and the user chose that pin on purpose.
 
 ## Implementation sketch (paths in the Anda repo)
 
 - `core/model/.../LauncherSettings.kt`: `SearchSettings.excludedShortcutApps: List<String> = emptyList()`.
+- `core/model/.../LauncherSettings.kt` also holds `withShortcutsHidden` / `withShortcutsShown` (trim, ignore blanks and repeats, cap 200), so the long-press item and the settings screen share one tested rule.
 - `core/model/.../SettingsSafety.kt`: cap at 200, drop blanks and duplicates when the list is written.
-- `feature/search/.../ShortcutSearchProvider.kt`: apply `withoutExcludedApps(excluded)` to the scored results; the function is pure so a unit test can reach it.
+- `feature/search/.../ShortcutSearchProvider.kt`: skip excluded packages before scoring and before the 10-result cap, so hidden apps never take a slot.
 - `feature/search/.../SearchPage.kt`: second menu item on `SearchResult.Shortcut`, using the same result-actions path as pinning.
 - `feature/settings/.../SettingsIndex.kt` (`Screen.ShortcutApps`, parent `Search`, index entry), `SettingsRoot.kt` (route), `screens/ShortcutAppsScreen.kt` (new), `screens/SearchSettingsScreen.kt` (row).
 - `CHANGELOG.md`: the `0.7.0` entry.
@@ -43,6 +44,6 @@ the shortcut set changes. A package filter applied *after* the cache costs one s
 ## Tests
 
 - `SettingsSerializationTest`: a 0.6.0 settings file decodes with the list empty, and a list round-trips.
-- `ShortcutExclusionTest` (new, `feature/search`): excluded packages are removed, others keep their order and scores; an empty list returns the input unchanged; the cap and de-duplication.
+- `ShortcutExclusionTest` (new, `core/model`): hiding adds once and keeps order, blanks are ignored, the 200 cap, showing brings an app back, `sanitized()` cleans a messy list, a 0.6.0 file decodes to nothing hidden, round trip.
 - `SettingsIndexTest` (existing): the new title is a real row. `ChangelogTest` (existing): version and notes.
 - Emulator check: the long-press flow and the settings screen, once.

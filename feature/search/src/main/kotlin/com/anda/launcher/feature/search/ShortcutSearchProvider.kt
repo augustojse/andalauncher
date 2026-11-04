@@ -30,7 +30,10 @@ internal class ShortcutSearchProvider(private val graph: LauncherGraph) : Search
         }
         val appLabels = request.apps.associate { it.key.packageName to it.label }
         val latin = if (request.settings.transliterate) request.latinKeys else emptyMap()
+        // Filtered before scoring and before the cap, so hidden apps never take one of the 10 slots.
+        val excluded = request.settings.excludedShortcutApps.toHashSet()
         return cache.mapNotNull { e ->
+            if (e.packageName in excluded) return@mapNotNull null
             val score = maxOf(
                 FuzzyMatcher.score(request.query, e.normalized, fuzzy = false),
                 latin[e.label]?.let { FuzzyMatcher.score(request.query, it, fuzzy = false) * 9 / 10 } ?: 0,

@@ -84,6 +84,11 @@ fun LauncherSettings.sanitized(): LauncherSettings {
                 .filter { it.isValid }
                 .map { it.copy(name = it.name.trim().take(40)) }
                 .take(WebEngine.MAX_ENGINES),
+            excludedShortcutApps = search.excludedShortcutApps
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .take(SearchSettings.MAX_EXCLUDED_SHORTCUT_APPS),
             customActions = search.customActions
                 .map { it.copy(label = it.label.trim()) }
                 .filter { it.isValid }

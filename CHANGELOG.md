@@ -6,6 +6,9 @@ Every update gets a new version here, newest first. The build takes `versionName
 - Heading: `## X.Y.Z — YYYY-MM-DD`. Bump Z for fixes only, Y for new features (resetting Z).
 - One bullet per user-visible change, starting with `New:`, `Changed:` or `Fixed:`.
 
+## 0.7.0 — 2026-11-04
+- New: long-press an app shortcut in search and choose "Hide shortcuts from <app>" to stop that app's shortcuts from showing up. Bring them back, or see which apps are hidden, in Settings → Search → Hidden shortcut apps.
+
 ## 0.6.0 — 2026-10-27
 - New: search finds apps and shortcuts named in other alphabets when you type their Latin spelling, so "telegram" finds Телеграм and "kamera" finds Камера (Settings → Search → Advanced → Other alphabets, on by default). It is ready a few seconds after the launcher starts.
 - New: contact results show the phone number with Call and Message buttons, which open your dialer or messages app (Settings → Search → Call and message buttons).

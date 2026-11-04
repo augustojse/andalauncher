@@ -19,6 +19,7 @@ internal enum class Screen(val title: String) {
     About("About"),
     IconEditor("Icon editor"),
     QuickActions("Quick actions"),
+    ShortcutApps("Hidden shortcut apps"),
     ;
 
     /** Where Back goes; Main when null. */
@@ -26,6 +27,7 @@ internal enum class Screen(val title: String) {
         get() = when (this) {
             IconEditor -> Icons
             QuickActions -> Search
+            ShortcutApps -> Search
             else -> null
         }
 }
@@ -111,6 +113,7 @@ internal object SettingsIndex {
         IndexEntry("Icon swipe actions", Screen.Gestures, "per icon swipe"),
         IndexEntry("Reset gestures to defaults", Screen.Gestures, "restore"),
         // Search
+        IndexEntry("Hidden shortcut apps", Screen.Search, "shortcut exclude hide app remove show again"),
         IndexEntry("Contacts", Screen.Search, "people search"),
         IndexEntry("Call and message buttons", Screen.Search, "contact phone dial sms text"),
         IndexEntry("Calendar events", Screen.Search, "agenda appointment meeting"),
