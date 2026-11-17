@@ -1,0 +1,6 @@
+﻿[PASS] emulator - emulator-5554 (C1_Pixel_9_API_37, API 37), fresh, load 2.23
+[PASS] unit tests - 147 tests
+[PASS] smoke tour - 12 steps
+[PASS] log scan - fatal 0, ANR 0, StrictMode 0, on-device reports 0
+
+QA smoke PASS in 44.3 min - report: qa-reports\2026-11-03_2309-smoke\report.md

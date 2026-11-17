@@ -83,7 +83,8 @@ function Stop-Emulators {
 }
 
 function Start-Emulator([bool] $wipe) {
-    # Host GPU: the AVD's default software renderer (swiftshader) alone can saturate the CPU.
+    # Host GPU: the best of the modes measured on 2026-10-20 (software modes: 80-97% jank). Even so, a
+    # wiped emulator runs Settings at ~90% jank here, so emulator frame times are trend-only (docs/TESTING.md).
     $flags = "-avd $Avd -no-window -no-audio -no-boot-anim -gpu host " + $(if ($wipe) { "-no-snapshot -wipe-data" } else { "-no-snapshot-save" })
     Start-Process -FilePath $emulatorExe -ArgumentList $flags -WindowStyle Hidden
     $deadline = (Get-Date).AddMinutes(8)
@@ -92,19 +93,28 @@ function Start-Emulator([bool] $wipe) {
     return $s
 }
 
-function Get-Load { [double] ((Adb "cat /proc/loadavg") -split '\s+')[0] }
+function Get-Prop([string] $name) { "$(Adb "getprop $name")".Trim() }   # "" while the device is offline
 
-# Booted, then quiet: the 1-minute load has to drop below 6 (4 vCPUs) before tests start. An
-# overloaded emulator makes every app, the launcher included, miss its startup deadline, which
-# shows up as false ANRs and tests that never start.
-function Wait-Healthy {
-    $deadline = (Get-Date).AddMinutes(6)
-    while ((Get-Date) -lt $deadline -and (Adb "getprop sys.boot_completed").Trim() -ne "1") { Start-Sleep -Seconds 5 }
-    if ((Adb "getprop sys.boot_completed").Trim() -ne "1") { return $false }
-    $deadline = (Get-Date).AddMinutes(8)
+function Get-Load {
+    $raw = "$(Adb 'cat /proc/loadavg')".Trim()
+    $value = 99.0
+    if ($raw -and [double]::TryParse(($raw -split '\s+')[0], [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref] $value)) { return $value }
+    return 99.0
+}
+
+# Booted, then quiet: the 1-minute load has to stay below 6 (4 vCPUs) for a minute (3 readings,
+# 20 s apart) before tests start. An overloaded or still-booting emulator makes every app, the
+# launcher included, miss its deadlines: false ANRs and tests that never start (2026-10-15: a
+# single null-unsafe boot check let a run start mid-boot and 0 tests ran).
+function Wait-Healthy([int] $minutes = 12) {
+    $deadline = (Get-Date).AddMinutes($minutes)
+    while ((Get-Date) -lt $deadline -and (Get-Prop "sys.boot_completed") -ne "1") { Start-Sleep -Seconds 5 }
+    if ((Get-Prop "sys.boot_completed") -ne "1") { return $false }
+    $calm = 0
     while ((Get-Date) -lt $deadline) {
-        if ((Get-Load) -lt 6) { return $true }
-        Start-Sleep -Seconds 15
+        if ((Get-Load) -lt 6) { $calm++ } else { $calm = 0 }
+        if ($calm -ge 3) { return $true }
+        Start-Sleep -Seconds 20
     }
     return $false
 }
@@ -139,7 +149,7 @@ if (-not $serial -or $serial -notlike "emulator-*" -or -not $healthy) {
     & $adb -s $serial logcat -G 16M 2>$null | Out-Null         # the 2 MB default drops lines within minutes
     $load = Get-Load
     $metrics["emulator_load"] = $load
-    Add-Step "emulator" "PASS" ("{0} ({1}, API {2}){3}, load {4}" -f $serial, $Avd, (Adb 'getprop ro.build.version.sdk').Trim(), $(if ($wasFresh) { ", fresh" } else { "" }), $load) ((Get-Date) - $t).TotalSeconds
+    Add-Step "emulator" "PASS" ("{0} ({1}, API {2}){3}, load {4}" -f $serial, $Avd, (Get-Prop 'ro.build.version.sdk'), $(if ($wasFresh) { ", fresh" } else { "" }), $load) ((Get-Date) - $t).TotalSeconds
     $exitCode = 0
 }
 
@@ -192,19 +202,35 @@ if ($exitCode -eq 0) {
         else { Add-Step "instrumented suite" "FAIL" ("{0}/{1} failed: {2}" -f $r.failed, $r.total, ($r.names -join " | ")) ((Get-Date) - $t).TotalSeconds }
 
         # Monkey: random input confined to Anda. Connected tests uninstall the app, so reinstall first.
+        # No flips (they need /dev/input access the emulator denies, which aborts the run) and no
+        # --monitor-native-crashes (it aborts on a native crash in ANY process; Anda has no native code).
         $t = Get-Date
         [void] (Invoke-Gradle "install.log" @(":app:installDebug"))
         Adb "cmd role add-role-holder android.app.role.HOME $package 0" | Out-Null
         $monkeyIssues = @()
         for ($i = 1; $i -le $MonkeySeeds; $i++) {
             $seed = [int] (Get-Date -UFormat %j) * 100 + $i     # new seeds each day, reproducible from the report
+            # A busy emulator turns into fake ANRs: each seed starts on a quiet system.
+            [void] (Wait-Healthy 5)
+            $load = Get-Load
             Adb "input keyevent KEYCODE_HOME" | Out-Null
+            Adb "log -t AndaQA monkey-seed-$seed-start" | Out-Null
             $log = Join-Path $out "monkey-seed-$seed.txt"
-            Adb "monkey -p $package -s $seed --throttle 40 --pct-syskeys 0 --pct-appswitch 0 --ignore-security-exceptions --monitor-native-crashes -v $MonkeyEvents" | Set-Content $log -Encoding utf8
+            Adb "monkey -p $package -s $seed --throttle 40 --pct-syskeys 0 --pct-appswitch 0 --pct-flip 0 --ignore-security-exceptions -v $MonkeyEvents" | Set-Content $log -Encoding utf8
             $text = Get-Content $log -Raw
-            if ($text -match '// CRASH: com\.anda\.launcher') { $monkeyIssues += "seed $seed CRASH" }
-            elseif ($text -match '// NOT RESPONDING: com\.anda\.launcher') { $monkeyIssues += "seed $seed ANR" }
-            elseif ($text -notmatch 'Monkey finished') { $monkeyIssues += "seed $seed aborted" }
+            # What the system logged for this seed (after its marker): the reason for an early stop.
+            $seedLog = & $adb -s $serial logcat -d 2>$null | Select-String "monkey-seed-$seed-start" -Context 0, 100000 | ForEach-Object { $_.Context.PostContext }
+            $anr = @($seedLog | Select-String "ANR in $([regex]::Escape($package))").Count -gt 0
+            $crash = ($text -match "// CRASH: $([regex]::Escape($package))") -or (@($seedLog | Select-String "Process: $([regex]::Escape($package)), PID").Count -gt 0)
+            if ($crash) { $monkeyIssues += "seed $seed CRASH (load $load)" }
+            elseif ($anr -or $text -match "// NOT RESPONDING: $([regex]::Escape($package))") {
+                $reason = ($seedLog | Select-String 'Reason: ' | Select-Object -First 1).Line -replace '^.*Reason: ', ''
+                $monkeyIssues += "seed $seed ANR: $reason (load $load)"
+            }
+            elseif ($text -notmatch 'Monkey finished') {
+                $events = ([regex]::Match($text, 'Events injected: (\d+)')).Groups[1].Value
+                $monkeyIssues += "seed $seed stopped after $events events (load $load; see monkey-seed-$seed.txt)"
+            }
         }
         $metrics["monkey_events"] = $MonkeySeeds * $MonkeyEvents
         $metrics["monkey_issues"] = $monkeyIssues.Count
@@ -214,6 +240,9 @@ if ($exitCode -eq 0) {
         # Performance snapshot: a fixed gesture journey. Emulator numbers are for trends only;
         # the budgets in docs/RND.md are measured on the Pixel with the release build.
         $t = Get-Date
+        if (-not (Wait-Healthy 6)) {
+            Add-Step "performance snapshot" "INFO" "Skipped: emulator stayed busy (load $(Get-Load)); numbers would be noise" ((Get-Date) - $t).TotalSeconds
+        } else {
         Adb "am force-stop $package" | Out-Null
         Adb "input keyevent KEYCODE_HOME" | Out-Null
         Start-Sleep -Seconds 4
@@ -237,6 +266,7 @@ if ($exitCode -eq 0) {
         $metrics["pss_mb"] = if ($pss) { [math]::Round([int]$pss / 1024) } else { "" }
         $metrics["debug_apk_mb"] = if ($apk) { [math]::Round($apk.Length / 1MB, 1) } else { "" }
         Add-Step "performance snapshot" "INFO" ("jank {0}%, p95 {1} ms, PSS {2} MB, debug APK {3} MB (emulator: trend only)" -f $jank, $p95, $metrics["pss_mb"], $metrics["debug_apk_mb"]) ((Get-Date) - $t).TotalSeconds
+        }
         & $adb -s $serial logcat -d 2>$null | Set-Content (Join-Path $out "logcat-deep.txt") -Encoding utf8
     }
 
@@ -244,7 +274,8 @@ if ($exitCode -eq 0) {
     $t = Get-Date
     $allLogs = Get-ChildItem $out -Filter "logcat-*.txt" | ForEach-Object { Get-Content $_.FullName }
     $andaFatal = @($allLogs | Select-String "Process: $([regex]::Escape($package)), PID").Count
-    $anrs = @($allLogs | Select-String "am_anr.*$([regex]::Escape($package))|ANR in $([regex]::Escape($package))").Count
+    # One line per ANR (ActivityManager's report); Monkey echoes each ANR again, so it isn't counted.
+    $anrs = @($allLogs | Select-String "ActivityManager: ANR in $([regex]::Escape($package))").Count
     $strict = @($allLogs | Select-String 'StrictMode policy violation' | Where-Object { $_.Line -match 'anda' }).Count
     $reports = Adb "run-as $package ls files/crashes" | Where-Object { $_ -match '\.txt' }
     $metrics["anda_fatal"] = $andaFatal

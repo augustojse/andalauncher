@@ -160,6 +160,7 @@ switch ($Command) {
         $serial = Find-Emulator
         if (-not $serial) {
             $emu = Join-Path $sdk "emulator\emulator.exe"
+            # -gpu host was the best mode measured (docs/TESTING.md, "Emulator rendering speed"); gesture speed is still not trustworthy.
             Start-Process -FilePath $emu -ArgumentList "-avd $Avd -no-audio -no-boot-anim -gpu host -no-snapshot-save" -WindowStyle Minimized
             $deadline = (Get-Date).AddMinutes(8)
             while ((Get-Date) -lt $deadline -and -not $serial) { Start-Sleep 10; $serial = Find-Emulator }
